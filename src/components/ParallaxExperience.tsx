@@ -6,6 +6,7 @@ import { ParticleField } from './ParticleField';
 import { ConstellationCanvas } from './ConstellationCanvas';
 import { NavDrawer } from './NavDrawer';
 import { PlaceholderSection } from './PlaceholderSection';
+import { HorizontalTextScrollSection } from './HorizontalTextScrollSection';
 
 interface SlideData {
   headline: string[];
@@ -113,18 +114,17 @@ const featureItemVariants = {
   },
 };
 
-// The original Hero <-> Contenders transition was tuned against a 480vh track.
-// Adding a third section stretches the track to 720vh, so every original
-// scroll-progress breakpoint is compressed by this factor to preserve the
-// exact same timing/feel for sections 1 & 2, leaving the remaining (1 - K)
-// tail of the track for the new Contenders <-> Placeholder transition.
-const K = 480 / 720;
+// 4-Section Scroll Track (Hero -> Computers & Simulations -> Qrome Products -> Agronomic Insights)
+const K1 = 0.25;
+const K2 = 0.50;
+const K3 = 0.75;
 
 export function ParallaxExperience() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isSectionRevealed, setIsSectionRevealed] = useState(false);
+  const [activeSectionIndex, setActiveSectionIndex] = useState(0);
 
   // Scroll tracking across the scroll track
   const { scrollYProgress } = useScroll({
@@ -135,8 +135,6 @@ export function ParallaxExperience() {
   // =========================================================================
   // SPRING-BASED INERTIA PHYSICS FOR RESPONSIVE, WEIGHTED PARALLAX
   // =========================================================================
-  // Balanced organic spring: responsive to user scroll with smooth physical momentum,
-  // without fighting the user or causing sluggish resistance.
   const diagonalCutSpring = useSpring(scrollYProgress, {
     stiffness: 85,
     damping: 24,
@@ -152,13 +150,28 @@ export function ParallaxExperience() {
     restDelta: 0.0001,
   });
 
+  // Track active section index based on scroll progress
+  useEffect(() => {
+    const unsubscribe = smoothProgress.on('change', (p) => {
+      if (p < 0.22) {
+        setActiveSectionIndex(0);
+      } else if (p < 0.47) {
+        setActiveSectionIndex(1);
+      } else if (p < 0.72) {
+        setActiveSectionIndex(2);
+      } else {
+        setActiveSectionIndex(3);
+      }
+    });
+    return () => unsubscribe();
+  }, [smoothProgress]);
+
   // Trigger entrance animation for Section 2 elements as diagonal transition completes
-  // Synchronized directly with the weighted physics of the diagonal cut plane
   useEffect(() => {
     const checkRevealed = (val: number) => {
-      if (val >= 0.54 * K) {
+      if (val >= 0.54 * K1) {
         setIsSectionRevealed(true);
-      } else if (val < 0.44 * K) {
+      } else if (val < 0.44 * K1) {
         setIsSectionRevealed(false);
       }
     };
@@ -192,17 +205,14 @@ export function ParallaxExperience() {
   // =========================================================================
   // WEIGHTED DIAGONAL CUT-IN TRANSITION GEOMETRY (TRANSITION 1: HERO -> CONTENDERS)
   // =========================================================================
-  // The boundary slopes upward from left to right (~25% vertical delta).
-  // Driven entirely by diagonalCutSpring to ensure the diagonal plane sweeps
-  // with physical momentum, kinetic acceleration, and organic settling.
   const cut1Left = useTransform(
     diagonalCutSpring,
-    [0, 0.08 * K, 0.38 * K, 0.58 * K, K],
+    [0, 0.08 * K1, 0.38 * K1, 0.58 * K1, K1],
     [135, 125, 50, -12, -22]
   );
   const cut1Right = useTransform(
     diagonalCutSpring,
-    [0, 0.08 * K, 0.38 * K, 0.58 * K, K],
+    [0, 0.08 * K1, 0.38 * K1, 0.58 * K1, K1],
     [110, 100, 25, -38, -48]
   );
 
@@ -212,18 +222,16 @@ export function ParallaxExperience() {
   );
 
   // =========================================================================
-  // WEIGHTED DIAGONAL CUT-IN TRANSITION GEOMETRY (TRANSITION 2: CONTENDERS -> PLACEHOLDER)
-  // Exactly the same shape/mechanics as Transition 1, mirrored onto the
-  // remaining (1 - K) tail of the track.
+  // WEIGHTED DIAGONAL CUT-IN TRANSITION GEOMETRY (TRANSITION 2: CONTENDERS -> QROME PRODUCTS)
   // =========================================================================
   const cut2Left = useTransform(
     diagonalCutSpring,
-    [K, K + 0.08 * (1 - K), K + 0.38 * (1 - K), K + 0.58 * (1 - K), 1],
+    [K1, K1 + 0.08 * (K2 - K1), K1 + 0.38 * (K2 - K1), K1 + 0.58 * (K2 - K1), K2],
     [135, 125, 50, -12, -22]
   );
   const cut2Right = useTransform(
     diagonalCutSpring,
-    [K, K + 0.08 * (1 - K), K + 0.38 * (1 - K), K + 0.58 * (1 - K), 1],
+    [K1, K1 + 0.08 * (K2 - K1), K1 + 0.38 * (K2 - K1), K1 + 0.58 * (K2 - K1), K2],
     [110, 100, 25, -38, -48]
   );
 
@@ -233,26 +241,43 @@ export function ParallaxExperience() {
   );
 
   // =========================================================================
+  // WEIGHTED DIAGONAL CUT-IN TRANSITION GEOMETRY (TRANSITION 3: QROME -> HORIZONTAL INSIGHTS)
+  // =========================================================================
+  const cut3Left = useTransform(
+    diagonalCutSpring,
+    [K2, K2 + 0.08 * (K3 - K2), K2 + 0.38 * (K3 - K2), K2 + 0.58 * (K3 - K2), K3],
+    [135, 125, 50, -12, -22]
+  );
+  const cut3Right = useTransform(
+    diagonalCutSpring,
+    [K2, K2 + 0.08 * (K3 - K2), K2 + 0.38 * (K3 - K2), K2 + 0.58 * (K3 - K2), K3],
+    [110, 100, 25, -38, -48]
+  );
+
+  const clipPathString3 = useTransform(
+    [cut3Left, cut3Right],
+    ([left, right]) => `polygon(0% ${left}%, 100% ${right}%, 100% 100%, 0% 100%)`
+  );
+
+  // =========================================================================
   // SECTION 1 (HERO) PARALLAX DISPLACEMENTS UNDER THE CUT
   // =========================================================================
-  // The corn ear sinks slightly with depth
-  const heroScrollBgY = useTransform(smoothProgress, [0, 0.55 * K], ['0%', '20%']);
-  const heroBgScale = useTransform(smoothProgress, [0, 0.55 * K], [1.06, 1.22]);
-  const heroBgOpacity = useTransform(smoothProgress, [0.42 * K, 0.58 * K], [1, 0]);
+  const heroScrollBgY = useTransform(smoothProgress, [0, 0.55 * K1], ['0%', '20%']);
+  const heroBgScale = useTransform(smoothProgress, [0, 0.55 * K1], [1.06, 1.22]);
+  const heroBgOpacity = useTransform(smoothProgress, [0.42 * K1, 0.58 * K1], [1, 0]);
 
-  // The hero text ("CALISTHENICS. REVOLUTIONIZED.") elevates slowly
-  const heroScrollTextY = useTransform(smoothProgress, [0, 0.55 * K], ['0%', '-35%']);
-  const heroTextScale = useTransform(smoothProgress, [0, 0.55 * K], [1.0, 0.90]);
-  const heroTextOpacity = useTransform(smoothProgress, [0.36 * K, 0.52 * K], [1, 0]);
+  const heroScrollTextY = useTransform(smoothProgress, [0, 0.55 * K1], ['0%', '-35%']);
+  const heroTextScale = useTransform(smoothProgress, [0, 0.55 * K1], [1.0, 0.90]);
+  const heroTextOpacity = useTransform(smoothProgress, [0.36 * K1, 0.52 * K1], [1, 0]);
 
   // Hero Particles: glide upward
-  const heroParticlesY = useTransform(smoothProgress, [0, 0.55 * K], ['0%', '-90%']);
+  const heroParticlesY = useTransform(smoothProgress, [0, 0.55 * K1], ['0%', '-90%']);
 
   // Hero Scroll Indicator ("EXPLORE"): fades out early in scroll
-  const heroIndicatorOpacity = useTransform(smoothProgress, [0, 0.10 * K], [1, 0]);
-  const heroIndicatorY = useTransform(smoothProgress, [0, 0.10 * K], [0, 20]);
+  const heroIndicatorOpacity = useTransform(smoothProgress, [0, 0.10 * K1], [1, 0]);
+  const heroIndicatorY = useTransform(smoothProgress, [0, 0.10 * K1], [0, 20]);
 
-  // Combined vertical offsets for Hero elements (Mouse tilt parallax + scroll parallax)
+  // Combined vertical offsets for Hero elements
   const combinedHeroBgY = useTransform(
     [heroMouseBgY, heroScrollBgY],
     ([my, sy]) => `calc(${my}px + ${sy})`
@@ -266,26 +291,25 @@ export function ParallaxExperience() {
   // =========================================================================
   // SECTION 2 (CONTENDERS) PARALLAX DISPLACEMENTS INSIDE CUT 1 / UNDER CUT 2
   // =========================================================================
-  // Nebula background rises with subtle parallax
-  const contendersBgY = useTransform(smoothProgress, [0.10 * K, 0.84 * K], ['20%', '0%']);
-  const contendersBgScale = useTransform(smoothProgress, [0.10 * K, 0.84 * K], [1.14, 1.0]);
+  const contendersBgY = useTransform(smoothProgress, [0.10 * K1, 0.84 * K1], ['20%', '0%']);
+  const contendersBgScale = useTransform(smoothProgress, [0.10 * K1, 0.84 * K1], [1.14, 1.0]);
 
-  // As Cut 2 sweeps in, Section 2 sinks slightly for a sense of depth
-  const contendersSinkY = useTransform(smoothProgress, [K, 1], ['0%', '16%']);
-  const contendersSinkScale = useTransform(smoothProgress, [K, 1], [1.0, 1.08]);
+  // As Cut 2 sweeps in, Section 2 sinks slightly
+  const contendersSinkY = useTransform(smoothProgress, [K1, K2], ['0%', '16%']);
+  const contendersSinkScale = useTransform(smoothProgress, [K1, K2], [1.0, 1.08]);
 
-  // Constellation Canvas traverses vertically while spiraling in 3D
-  const contendersCanvasY = useTransform(smoothProgress, [0.10 * K, 0.90 * K], ['22%', '-22%']);
+  // Constellation Canvas traverses vertically
+  const contendersCanvasY = useTransform(smoothProgress, [0.10 * K1, 0.90 * K1], ['22%', '-22%']);
 
-  // Typography rises gracefully into view, then exits well before Cut 2 reveals Placeholder
-  const contendersTextY = useTransform(smoothProgress, [0.46 * K, 0.58 * K], ['20%', '0%']);
+  // Typography rises gracefully into view
+  const contendersTextY = useTransform(smoothProgress, [0.46 * K1, 0.58 * K1], ['20%', '0%']);
   const contendersTextOpacity = useTransform(
     smoothProgress,
-    [0.46 * K, 0.58 * K, 0.70, 0.78],
+    [0.46 * K1, 0.58 * K1, K1 + 0.35 * (K2 - K1), K1 + 0.48 * (K2 - K1)],
     [0, 1, 1, 0]
   );
 
-  // Section 2 Mouse displacement parallax & 3D tilt
+  // Section 2 Mouse displacement parallax
   const contendersMouseBgX = useTransform(smoothMouseX, [-1, 1], [14, -14]);
   const contendersMouseBgY = useTransform(smoothMouseY, [-1, 1], [10, -10]);
   const combinedContendersBgY = useTransform(
@@ -304,48 +328,48 @@ export function ParallaxExperience() {
     ([my, sy]) => `calc(${my}px + ${sy})`
   );
 
-  // Right-edge Pagination dots fade & slide into position as Section 2 takes over
-  const paginationOpacity = useTransform(smoothProgress, [0.52 * K, 0.60 * K], [0, 1]);
-  const paginationX = useTransform(smoothProgress, [0.52 * K, 0.60 * K], [35, 0]);
+  // =========================================================================
+  // SCROLL-TRIGGERED REVEAL TRANSFORMS FOR FLOATING STORY NAVIGATION DOTS
+  // =========================================================================
+  const navDotsOpacity = useTransform(smoothProgress, [0.15 * K1, 0.42 * K1], [0, 1]);
+  const navDotsX = useTransform(smoothProgress, [0.15 * K1, 0.42 * K1], [40, 0]);
+  const navDotsPointerEvents = useTransform(smoothProgress, (p) => (p > 0.15 * K1 ? 'auto' : 'none'));
 
   // =========================================================================
-  // SECTION 3 (PLACEHOLDER) PARALLAX DISPLACEMENTS INSIDE CUT 2
-  // Mirrors the same reveal timing Section 2 used relative to Cut 1.
+  // SECTION 3 (PLACEHOLDER / QROME) PARALLAX DISPLACEMENTS INSIDE CUT 2
   // =========================================================================
   const placeholderTextY = useTransform(
     smoothProgress,
-    [K + 0.46 * (1 - K), K + 0.58 * (1 - K)],
+    [K1 + 0.46 * (K2 - K1), K1 + 0.58 * (K2 - K1)],
     ['20%', '0%']
   );
   const placeholderTextOpacity = useTransform(
     smoothProgress,
-    [K + 0.46 * (1 - K), K + 0.56 * (1 - K)],
+    [K1 + 0.46 * (K2 - K1), K1 + 0.56 * (K2 - K1)],
     [0, 1]
   );
 
   // =========================================================================
   // GLOBAL BACKGROUND GRADIENT & COLOR GRADING TRANSFORMS
-  // Subtle color grading shift from Deep Emerald to Dark Obsidian, settling
-  // well before Section 3 (which paints its own independent background).
   // =========================================================================
   const globalGradTop = useTransform(
     smoothProgress,
-    [0, 0.35 * K, 0.70 * K],
+    [0, 0.35 * K1, 0.70 * K1],
     ['#062e1d', '#042219', '#0e141b']
   );
   const globalGradMid = useTransform(
     smoothProgress,
-    [0, 0.35 * K, 0.70 * K],
+    [0, 0.35 * K1, 0.70 * K1],
     ['#021a10', '#021511', '#080b10']
   );
   const globalGradBase = useTransform(
     smoothProgress,
-    [0, 0.35 * K, 0.70 * K],
+    [0, 0.35 * K1, 0.70 * K1],
     ['#010c07', '#010a08', '#030407']
   );
   const globalGlowColor = useTransform(
     smoothProgress,
-    [0, 0.35 * K, 0.70 * K],
+    [0, 0.35 * K1, 0.70 * K1],
     [
       'rgba(16, 185, 129, 0.15)',
       'rgba(20, 140, 115, 0.10)',
@@ -360,12 +384,15 @@ export function ParallaxExperience() {
   );
 
   // Active interaction triggers
-  const heroPointerEvents = useTransform(smoothProgress, (p) => (p < 0.46 * K ? 'auto' : 'none'));
+  const heroPointerEvents = useTransform(smoothProgress, (p) => (p < 0.46 * K1 ? 'auto' : 'none'));
   const contendersPointerEvents = useTransform(smoothProgress, (p) =>
-    p >= 0.52 * K && p < K + 0.46 * (1 - K) ? 'auto' : 'none'
+    p >= 0.52 * K1 && p < K1 + 0.46 * (K2 - K1) ? 'auto' : 'none'
   );
   const placeholderPointerEvents = useTransform(smoothProgress, (p) =>
-    p >= K + 0.46 * (1 - K) ? 'auto' : 'none'
+    p >= K1 + 0.46 * (K2 - K1) && p < K2 + 0.46 * (K3 - K2) ? 'auto' : 'none'
+  );
+  const insightsPointerEvents = useTransform(smoothProgress, (p) =>
+    p >= K2 + 0.46 * (K3 - K2) ? 'auto' : 'none'
   );
 
   // Track cursor movement across viewport for Hero 3D tilt
@@ -406,10 +433,10 @@ export function ParallaxExperience() {
     const diff = touchStartY.current - touchEndY;
     touchStartY.current = null;
 
-    if (diff > 50 && scrollYProgress.get() < 0.45 * K) {
+    if (diff > 50 && scrollYProgress.get() < 0.45 * K1) {
       // Swiped UP: advance smoothly to Section 2 full-screen
       scrollToContenders();
-    } else if (diff < -50 && scrollYProgress.get() > 0.45 * K) {
+    } else if (diff < -50 && scrollYProgress.get() > 0.45 * K1) {
       // Swiped DOWN: return to Hero section
       scrollToHero();
     }
@@ -419,26 +446,61 @@ export function ParallaxExperience() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'PageDown') {
-        scrollToContenders();
+        if (activeSectionIndex === 0) scrollToContenders();
+        else if (activeSectionIndex === 1) scrollToPlaceholder();
+        else if (activeSectionIndex === 2) scrollToInsights();
       } else if (e.key === 'PageUp') {
-        scrollToHero();
+        if (activeSectionIndex === 3) scrollToPlaceholder();
+        else if (activeSectionIndex === 2) scrollToContenders();
+        else if (activeSectionIndex === 1) scrollToHero();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [activeSectionIndex]);
 
-  // Smooth scroll helper: advance to the top of Section 2 where it is full screen (not deep into paragraph)
+  // Story sections metadata for global floating navigation
+  const STORY_SECTIONS = [
+    { id: 'revolution', label: 'Revolution', number: '01' },
+    { id: 'simulations', label: 'Computers & Simulations', number: '02' },
+    { id: 'products', label: 'Qrome® Products', number: '03' },
+    { id: 'insights', label: 'Agronomic Insights', number: '04' },
+  ];
+
+  // Smooth scroll helper: return to Hero (Section 1)
+  const scrollToHero = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Smooth scroll helper: advance to Section 2 (Computers & Simulations)
   const scrollToContenders = () => {
     if (!containerRef.current) return;
     const maxScroll = containerRef.current.offsetHeight - window.innerHeight;
-    const target = containerRef.current.offsetTop + maxScroll * 0.58 * K;
+    const target = containerRef.current.offsetTop + maxScroll * (0.58 * K1);
     window.scrollTo({ top: target, behavior: 'smooth' });
   };
 
-  // Smooth scroll helper to return to Hero
-  const scrollToHero = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Smooth scroll helper: advance to Section 3 (Qrome Products)
+  const scrollToPlaceholder = () => {
+    if (!containerRef.current) return;
+    const maxScroll = containerRef.current.offsetHeight - window.innerHeight;
+    const target = containerRef.current.offsetTop + maxScroll * (K1 + 0.58 * (K2 - K1));
+    window.scrollTo({ top: target, behavior: 'smooth' });
+  };
+
+  // Smooth scroll helper: advance to Section 4 (Agronomic Insights Horizontal Text Scroll)
+  const scrollToInsights = () => {
+    if (!containerRef.current) return;
+    const maxScroll = containerRef.current.offsetHeight - window.innerHeight;
+    const target = containerRef.current.offsetTop + maxScroll * (K2 + 0.58 * (K3 - K2));
+    window.scrollTo({ top: target, behavior: 'smooth' });
+  };
+
+  const handleSectionClick = (index: number) => {
+    if (index === 0) scrollToHero();
+    else if (index === 1) scrollToContenders();
+    else if (index === 2) scrollToPlaceholder();
+    else if (index === 3) scrollToInsights();
   };
 
   const slide = SLIDES[currentSlide];
@@ -452,7 +514,7 @@ export function ParallaxExperience() {
       style={{
         background: globalBgGradient,
       }}
-      className="relative w-full h-[720vh] transition-colors duration-300"
+      className="relative w-full h-[960vh] transition-colors duration-300"
     >
       {/* Sticky Fullscreen Viewport Stage */}
       <div className="sticky top-0 w-full h-screen min-h-[640px] overflow-hidden select-none">
@@ -640,7 +702,7 @@ export function ParallaxExperience() {
               {/* Base Atmospheric Emerald Fog */}
               <motion.div
                 style={{
-                  opacity: useTransform(smoothProgress, [0.10 * K, 0.65 * K], [0.85, 0.25]),
+                  opacity: useTransform(smoothProgress, [0.10 * K1, 0.65 * K1], [0.85, 0.25]),
                 }}
                 className="absolute inset-0 bg-radial-[circle_at_60%_45%] from-emerald-950/40 via-[#03150c]/80 to-[#020b06]/95 pointer-events-none"
                 aria-hidden="true"
@@ -649,7 +711,7 @@ export function ParallaxExperience() {
               {/* Dark Obsidian Shift Atmosphere Fog */}
               <motion.div
                 style={{
-                  opacity: useTransform(smoothProgress, [0.35 * K, 0.85 * K], [0, 0.92]),
+                  opacity: useTransform(smoothProgress, [0.35 * K1, 0.85 * K1], [0, 0.92]),
                   background:
                     'radial-gradient(ellipse at 60% 45%, rgba(15, 23, 42, 0.45) 0%, rgba(7, 10, 15, 0.82) 50%, #030406 100%)',
                 }}
@@ -763,61 +825,33 @@ export function ParallaxExperience() {
                       </motion.li>
                     ))}
                   </motion.ul>
+
+                  {/* Simulation Topic Switcher within Section 2 */}
+                  <div className="mt-8 flex items-center gap-2.5 select-none" aria-label="Simulation topics">
+                    {SLIDES.map((_, index) => {
+                      const isActive = index === currentSlide;
+                      return (
+                        <button
+                          key={index}
+                          id={`simulation-topic-pill-${index}`}
+                          onClick={() => setCurrentSlide(index)}
+                          className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-400/50 ${
+                            isActive
+                              ? 'w-8 bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.8)]'
+                              : 'w-2.5 bg-white/30 hover:bg-white/70'
+                          }`}
+                          aria-label={`Switch to topic ${index + 1}`}
+                          aria-current={isActive ? 'true' : 'false'}
+                        />
+                      );
+                    })}
+                    <span className="text-[10px] font-mono tracking-widest text-emerald-400/70 ml-2">
+                      0{currentSlide + 1} / 0{SLIDES.length}
+                    </span>
+                  </div>
                 </motion.div>
               </AnimatePresence>
             </div>
-          </motion.div>
-
-          {/* Right-Edge Vertical Story Pagination Dots */}
-          <motion.div
-            id="contenders-pagination"
-            style={{
-              x: paginationX,
-              opacity: paginationOpacity,
-              pointerEvents: contendersPointerEvents,
-            }}
-            className="absolute right-6 sm:right-10 top-1/2 -translate-y-1/2 flex flex-col items-center gap-4 z-30"
-            aria-label="Story chapters"
-          >
-            {SLIDES.map((_, index) => {
-              const isActive = index === currentSlide;
-              return (
-                <button
-                  key={index}
-                  id={`pagination-dot-${index}`}
-                  onClick={() => setCurrentSlide(index)}
-                  className="relative flex items-center justify-center p-2 focus:outline-none cursor-pointer group"
-                  aria-label={`Go to slide ${index + 1}`}
-                  aria-current={isActive ? 'true' : 'false'}
-                >
-                  {isActive ? (
-                    <div className="relative flex items-center justify-center w-7 h-7">
-                      <motion.svg
-                        initial={{ rotate: 0 }}
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 16, repeat: Infinity, ease: 'linear' }}
-                        className="absolute inset-0 w-full h-full text-white/80"
-                        viewBox="0 0 28 28"
-                      >
-                        <circle
-                          cx="14"
-                          cy="14"
-                          r="12"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.2"
-                          strokeDasharray="60 15"
-                          className="opacity-90"
-                        />
-                      </motion.svg>
-                      <div className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
-                    </div>
-                  ) : (
-                    <div className="w-1.5 h-1.5 rounded-full bg-white/40 group-hover:bg-white/80 transition-all duration-200" />
-                  )}
-                </button>
-              );
-            })}
           </motion.div>
         </motion.div>
 
@@ -833,7 +867,33 @@ export function ParallaxExperience() {
           }}
           className="absolute inset-0 w-full h-full z-30 overflow-hidden [perspective:1400px]"
         >
-          <PlaceholderSection contentY={placeholderTextY} contentOpacity={placeholderTextOpacity} />
+          <PlaceholderSection
+            contentY={placeholderTextY}
+            contentOpacity={placeholderTextOpacity}
+            mouseX={smoothMouseX}
+            mouseY={smoothMouseY}
+          />
+        </motion.div>
+
+        {/* =========================================================================
+            SECTION 4: HORIZONTAL TEXT SCROLL INSIGHTS (CLIPPED BY DYNAMIC DIAGONAL CUT-IN 3)
+            ========================================================================= */}
+        <motion.div
+          id="horizontal-insights-clipped-container"
+          style={{
+            clipPath: clipPathString3,
+            WebkitClipPath: clipPathString3,
+            pointerEvents: insightsPointerEvents,
+          }}
+          className="absolute inset-0 w-full h-full z-35 overflow-hidden"
+        >
+          <HorizontalTextScrollSection
+            scrollProgress={smoothProgress}
+            sectionProgressStart={0.72}
+            sectionProgressEnd={1.0}
+            mouseX={smoothMouseX}
+            mouseY={smoothMouseY}
+          />
         </motion.div>
 
         {/* =========================================================================
@@ -867,6 +927,75 @@ export function ParallaxExperience() {
             </button>
           </div>
         </header>
+
+        {/* Floating Right-Edge Navigation Dot Indicator for Main Story Sections (Scroll-revealed) */}
+        <motion.nav
+          id="floating-story-navigation"
+          style={{
+            opacity: navDotsOpacity,
+            x: navDotsX,
+            pointerEvents: navDotsPointerEvents,
+          }}
+          aria-label="Story sections navigation"
+          className="absolute right-5 sm:right-8 lg:right-10 top-1/2 -translate-y-1/2 flex flex-col items-center gap-5 z-40 select-none"
+        >
+          {/* Subtle Vertical Connector Track */}
+          <div
+            className="absolute left-1/2 top-2.5 bottom-2.5 w-[1px] -translate-x-1/2 bg-gradient-to-b from-white/10 via-white/20 to-white/10 pointer-events-none"
+            aria-hidden="true"
+          />
+
+          {STORY_SECTIONS.map((section, index) => {
+            const isActive = index === activeSectionIndex;
+            return (
+              <button
+                key={section.id}
+                id={`nav-story-dot-${index}`}
+                onClick={() => handleSectionClick(index)}
+                className="relative group flex items-center justify-center p-2 focus:outline-none cursor-pointer"
+                aria-label={`Jump to ${section.label}`}
+                aria-current={isActive ? 'true' : 'false'}
+              >
+                {/* Floating Tooltip Pill on Hover */}
+                <div className="absolute right-10 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-md bg-[#04120a]/92 backdrop-blur-md border border-emerald-500/30 text-[11px] font-medium tracking-wider text-emerald-100 uppercase whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 transform translate-x-2 group-hover:translate-x-0 shadow-[0_4px_20px_rgba(0,0,0,0.8)] flex items-center gap-2">
+                  <span className="font-mono text-emerald-400 text-[10px]">{section.number}</span>
+                  <span>{section.label}</span>
+                </div>
+
+                {/* Active Animated Orbital Ring vs Inactive Clean Dot */}
+                {isActive ? (
+                  <div className="relative flex items-center justify-center w-7 h-7">
+                    {/* Continuous Rotating Segmented Aura */}
+                    <motion.svg
+                      initial={{ rotate: 0 }}
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 14, repeat: Infinity, ease: 'linear' }}
+                      className="absolute inset-0 w-full h-full text-emerald-400/90"
+                      viewBox="0 0 28 28"
+                    >
+                      <circle
+                        cx="14"
+                        cy="14"
+                        r="11"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.4"
+                        strokeDasharray="45 15"
+                        className="opacity-95 drop-shadow-[0_0_6px_rgba(16,185,129,0.8)]"
+                      />
+                    </motion.svg>
+                    {/* Glowing Core Center */}
+                    <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.9),0_0_20px_rgba(16,185,129,0.9)]" />
+                  </div>
+                ) : (
+                  <div className="relative flex items-center justify-center w-5 h-5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-white/40 group-hover:bg-white/90 group-hover:scale-150 transition-all duration-200 group-hover:shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </motion.nav>
 
         {/* Bottom Center Animated Pulsing Scroll Indicator ("EXPLORE") */}
         <motion.div
