@@ -1,0 +1,6 @@
+{
+  "name": "Pioneer Corn Revolutionized Hero",
+  "description": "A cinematic landing page showcasing Pioneer's revolutionary corn seed technology and computational algorithm pipeline with 3D tilt, interactive genetic data constellation, and smooth story pagination.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
