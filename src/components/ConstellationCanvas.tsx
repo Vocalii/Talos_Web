@@ -121,7 +121,7 @@ export function ConstellationCanvas({
     // 3D Helical Genomic Network Model
     // 2 interleaved spiral strands (Strand A: Gold/Amber, Strand B: Emerald/Teal)
     // with cross-ladder rungs and central algorithmic nexus hubs - extended vertical length
-    const turns = 2.4; // Longer, continuous helical spiral curvature along the vertical length
+    const turns = 3.4; // Longer, continuous helical spiral curvature along the vertical length
 
     const nodes: NodePoint[] = [
       // STRAND A (Angle offset: 0) - Primary Genomic Trait Sequence (Extended)
