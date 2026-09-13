@@ -5,7 +5,6 @@ import { PioneerLogo } from './PioneerLogo';
 import { ParticleField } from './ParticleField';
 import { ConstellationCanvas } from './ConstellationCanvas';
 import { NavDrawer } from './NavDrawer';
-import { CookieModal } from './CookieModal';
 
 interface SlideData {
   headline: string[];
@@ -15,13 +14,10 @@ interface SlideData {
 
 const SLIDES: SlideData[] = [
   {
-    headline: ['COMPUTERS', 'CUT DOWN THE', 'CONTENDERS.'],
+    headline: ['Learn The Moves', 'You Want'],
     description:
-      "Petabytes of data (that's one million GB each) feed into computers, running millions of simulations using proprietary algorithms for the most accurate predictions. Nearly 20x more candidates are in our pipeline compared with 10 years ago, far more than we could ever test in the field.",
+      "Whatever skill you want to learn, Talos has a structured path to get you there. With every phase mapped out so you always know exactly what to train next.",
     features: [
-      'Petabyte-scale computational genomics data lake',
-      'Proprietary predictive algorithms & machine-learning models',
-      '20x candidate screening velocity vs. physical field testing',
     ],
   },
   {
@@ -119,7 +115,6 @@ const featureItemVariants = {
 export function ParallaxExperience() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isNavOpen, setIsNavOpen] = useState(false);
-  const [isCookieModalOpen, setIsCookieModalOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isSectionRevealed, setIsSectionRevealed] = useState(false);
 
@@ -388,55 +383,6 @@ export function ParallaxExperience() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Mid-transition magnetic snap:
-  // If the user stops scrolling in the transition slice between Section 1 and Fullscreen Section 2,
-  // this gently settles them to Section 1 (0) or to the top of Section 2 where it's full screen (0.58).
-  // Once in Section 2, users are completely free to scroll without any snapping interference.
-  useEffect(() => {
-    let isProgrammatic = false;
-    let settleTimer: number | null = null;
-
-    const handleSettle = () => {
-      if (isProgrammatic || !containerRef.current) return;
-      const maxScroll = containerRef.current.offsetHeight - window.innerHeight;
-      if (maxScroll <= 0) return;
-      const currentScroll = window.scrollY;
-      const p = currentScroll / maxScroll;
-
-      // Only snap if the user paused in the midway transition zone
-      if (p > 0.18 && p < 0.52) {
-        isProgrammatic = true;
-        if (p < 0.35) {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else {
-          window.scrollTo({ top: maxScroll * 0.58, behavior: 'smooth' });
-        }
-        setTimeout(() => {
-          isProgrammatic = false;
-        }, 600);
-      }
-    };
-
-    const onScrollEnd = () => {
-      handleSettle();
-    };
-
-    const onScroll = () => {
-      if (isProgrammatic) return;
-      if (settleTimer) window.clearTimeout(settleTimer);
-      settleTimer = window.setTimeout(handleSettle, 350);
-    };
-
-    window.addEventListener('scrollend', onScrollEnd, { passive: true });
-    window.addEventListener('scroll', onScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener('scrollend', onScrollEnd);
-      window.removeEventListener('scroll', onScroll);
-      if (settleTimer) window.clearTimeout(settleTimer);
-    };
-  }, []);
-
   const slide = SLIDES[currentSlide];
 
   return (
@@ -450,22 +396,6 @@ export function ParallaxExperience() {
       }}
       className="relative w-full h-[480vh] transition-colors duration-300"
     >
-      {/* CSS Scroll Snap Anchors (Native proximity magnetic alignment) */}
-      <div
-        id="snap-point-hero"
-        className="absolute top-0 left-0 w-full h-px pointer-events-none"
-        style={{ scrollSnapAlign: 'start' }}
-        aria-hidden="true"
-      />
-      <div
-        id="snap-point-contenders-fullscreen"
-        className="absolute left-0 w-full h-px pointer-events-none"
-        style={{
-          top: 'calc((480vh - 100vh) * 0.58)',
-          scrollSnapAlign: 'start',
-        }}
-        aria-hidden="true"
-      />
       {/* Sticky Fullscreen Viewport Stage */}
       <div className="sticky top-0 w-full h-screen min-h-[640px] overflow-hidden select-none">
         {/* =========================================================================
@@ -575,15 +505,15 @@ export function ParallaxExperience() {
               scale: heroTextScale,
               pointerEvents: heroPointerEvents,
             }}
-            className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-4 sm:px-6 pointer-events-none -mt-4 sm:-mt-8"
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-4 sm:px-6 pointer-events-none mt-16 sm:mt-24"
           >
             <div className="max-w-7xl mx-auto w-full [transform:translateZ(20px)]">
               {/* Massive Bold Headline */}
               <h1
                 id="hero-title"
-                className="font-display font-black text-5xl sm:text-7xl md:text-8xl lg:text-[7.5rem] xl:text-[9.5rem] tracking-tight uppercase text-white leading-[0.9] drop-shadow-[0_10px_35px_rgba(0,0,0,0.85)] select-none"
+                className="font-display font-black text-[clamp(1.6rem,7vw,6.5rem)] whitespace-nowrap tracking-tight uppercase text-white leading-[0.9] drop-shadow-[0_10px_35px_rgba(0,0,0,0.85)] select-none"
               >
-                CORN. REVOLUTIONIZED.
+                CALISTHENICS. REVOLUTIONIZED.
               </h1>
 
               {/* Subtitle */}
@@ -591,7 +521,7 @@ export function ParallaxExperience() {
                 id="hero-subtitle"
                 className="mt-4 sm:mt-6 md:mt-7 text-sm sm:text-base md:text-lg lg:text-xl font-normal text-zinc-100/85 tracking-wide max-w-2xl mx-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] px-4 select-none"
               >
-                From lab to field, it's corn seed development that will change farming.
+                Master skills step by step with AI that adapts to every session
               </p>
             </div>
           </motion.div>
@@ -837,24 +767,12 @@ export function ParallaxExperience() {
         {/* =========================================================================
             CHROME NAVIGATION & CONTROLS (SHARED PERSISTENT INTERFACE)
             ========================================================================= */}
-        {/* Top Header Bar with Hamburger Menu & Logo */}
+        {/* Top Header Bar with Logo & Hamburger Menu */}
         <header
           id="main-header"
-          className="absolute top-0 left-0 right-0 z-40 w-full px-6 sm:px-10 lg:px-12 py-6 md:py-8 flex items-center pointer-events-auto"
+          className="absolute top-0 left-0 right-0 z-40 w-full py-6 md:py-8 pointer-events-auto"
         >
-          <div className="flex items-center gap-6 sm:gap-8">
-            {/* Hamburger Menu Toggle */}
-            <button
-              id="hamburger-menu-toggle"
-              onClick={() => setIsNavOpen(true)}
-              className="group flex flex-col justify-center items-start gap-1.5 w-8 h-8 focus:outline-none cursor-pointer"
-              aria-label="Open navigation menu"
-            >
-              <span className="w-7 h-[2px] bg-white transition-all duration-300 group-hover:w-8 group-hover:bg-emerald-400" />
-              <span className="w-7 h-[2px] bg-white transition-all duration-300 group-hover:w-8 group-hover:bg-emerald-400" />
-              <span className="w-7 h-[2px] bg-white transition-all duration-300 group-hover:w-8 group-hover:bg-emerald-400" />
-            </button>
-
+          <div className="max-w-7xl w-full mx-auto px-6 sm:px-12 lg:px-16 flex items-center justify-between">
             {/* Pioneer Brand Logo (Clicking smoothly returns to Hero) */}
             <button
               onClick={scrollToHero}
@@ -863,30 +781,20 @@ export function ParallaxExperience() {
             >
               <PioneerLogo />
             </button>
+
+            {/* Hamburger Menu Toggle */}
+            <button
+              id="hamburger-menu-toggle"
+              onClick={() => setIsNavOpen(true)}
+              className="group flex flex-col justify-center items-end gap-1.5 w-8 h-8 focus:outline-none cursor-pointer"
+              aria-label="Open navigation menu"
+            >
+              <span className="w-7 h-[2px] bg-white transition-all duration-300 group-hover:w-8 group-hover:bg-emerald-400" />
+              <span className="w-7 h-[2px] bg-white transition-all duration-300 group-hover:w-8 group-hover:bg-emerald-400" />
+              <span className="w-7 h-[2px] bg-white transition-all duration-300 group-hover:w-8 group-hover:bg-emerald-400" />
+            </button>
           </div>
         </header>
-
-        {/* Bottom Footer with Cookie Preferences Pill */}
-        <footer
-          id="main-footer"
-          className="absolute bottom-0 left-0 right-0 z-40 w-full px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between pointer-events-auto"
-        >
-          {/* Cookie Preferences Pill Button */}
-          <button
-            id="cookie-preferences-pill"
-            onClick={() => setIsCookieModalOpen(true)}
-            className="group flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#071d15]/80 hover:bg-[#0c2e22]/90 border border-teal-500/30 hover:border-teal-400/50 backdrop-blur-md text-teal-200/90 hover:text-teal-100 transition-all duration-200 shadow-lg cursor-pointer"
-            aria-label="Open Cookie Preferences"
-          >
-            <div className="w-3.5 h-3.5 rounded-full border border-teal-400/60 flex items-center justify-center p-0.5">
-              <div className="w-full h-full bg-teal-300/80 rounded-full group-hover:scale-110 transition-transform" />
-            </div>
-
-            <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase font-body">
-              COOKIE PREFERENCES
-            </span>
-          </button>
-        </footer>
 
         {/* Bottom Center Animated Pulsing Scroll Indicator ("EXPLORE") */}
         <motion.div
@@ -896,7 +804,7 @@ export function ParallaxExperience() {
             y: heroIndicatorY,
             pointerEvents: heroPointerEvents,
           }}
-          className="absolute bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-1 select-none"
+          className="absolute bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-3 select-none"
         >
           <motion.button
             onClick={scrollToContenders}
@@ -938,9 +846,6 @@ export function ParallaxExperience() {
 
         {/* Slide-out Navigation Drawer */}
         <NavDrawer isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} />
-
-        {/* Interactive Cookie Preferences Modal */}
-        <CookieModal isOpen={isCookieModalOpen} onClose={() => setIsCookieModalOpen(false)} />
       </div>
     </motion.div>
   );

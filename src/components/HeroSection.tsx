@@ -277,7 +277,7 @@ export function HeroSection({ onExploreNext }: HeroSectionProps = {}) {
             }}
             className="font-display font-black text-5xl sm:text-7xl md:text-8xl lg:text-[7.5rem] xl:text-[9.5rem] tracking-tight uppercase text-white leading-[0.9] drop-shadow-[0_10px_35px_rgba(0,0,0,0.85)]"
           >
-            CORN. REVOLUTIONIZED.
+            CALISTHENICS. REVOLUTIONIZED.
           </motion.h1>
 
           {/* Subtitle with Refined Subtle Tone */}

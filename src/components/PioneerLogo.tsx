@@ -20,7 +20,7 @@ export function PioneerLogo({ className = '' }: { className?: string }) {
           strokeWidth="6"
           fill="none"
         />
-        
+
         {/* Stylized Corn Plant / Seedling Sprout */}
         <path
           d="M50 80V40"
@@ -28,7 +28,7 @@ export function PioneerLogo({ className = '' }: { className?: string }) {
           strokeWidth="6"
           strokeLinecap="round"
         />
-        
+
         {/* Left Sprouting Leaf */}
         <path
           d="M50 62 C34 56 22 48 24 32 C26 22 40 30 50 44"
@@ -38,7 +38,7 @@ export function PioneerLogo({ className = '' }: { className?: string }) {
           strokeLinejoin="round"
           fill="none"
         />
-        
+
         {/* Right Sprouting Leaf */}
         <path
           d="M50 62 C66 56 78 48 76 32 C74 22 60 30 50 44"
@@ -61,7 +61,7 @@ export function PioneerLogo({ className = '' }: { className?: string }) {
 
       {/* Pioneer Wordmark */}
       <span className="font-display font-black text-2xl md:text-3xl tracking-wider text-white uppercase">
-        PIONEER
+        TALOS
       </span>
     </div>
   );
