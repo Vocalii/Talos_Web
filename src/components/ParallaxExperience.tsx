@@ -7,6 +7,8 @@ import { ConstellationCanvas } from './ConstellationCanvas';
 import { NavDrawer } from './NavDrawer';
 import { PlaceholderSection } from './PlaceholderSection';
 import { HorizontalTextScrollSection } from './HorizontalTextScrollSection';
+import { ProductsAtmosphereBackground } from './ProductsAtmosphereBackground';
+import { PlaceholderSection2 } from './PlaceholderSection2';
 
 interface SlideData {
   headline: string[];
@@ -114,10 +116,46 @@ const featureItemVariants = {
   },
 };
 
-// 4-Section Scroll Track (Hero -> Computers & Simulations -> Qrome Products -> Agronomic Insights)
-const K1 = 0.25;
-const K2 = 0.50;
-const K3 = 0.75;
+// 4-Section Scroll Track (Hero -> Computers & Simulations -> Qrome Products
+// [+ Agronomic Insights handoff within it] -> Placeholder 2).
+//
+// Hero, Contenders, and Qrome Products' own reveal (Cut 1, Cut 2, K1, K2)
+// have been stable throughout this build and are untouched below. Everything
+// AFTER Qrome is fully revealed is instead built from plain, named VH
+// lengths — not derived fractions of each other — specifically because that
+// area needed several rounds of "a bit more/less space here" corrections.
+// Adjusting the pacing going forward should only ever mean changing one of
+// these numbers, with no other formula to recompute by hand.
+const QROME_REVEALED_VH = 480; // 240 Hero + 240 Contenders — Qrome fully in view
+const QROME_EXIT_VH = 40; // Qrome content slides up + fades out
+const GAP_1_VH = 30; // pure background, breathing room
+const INSIGHTS_ENTER_VH = 40; // Insights content slides up + fades in
+const CAROUSEL_VH = 300; // horizontal carousel scroll-through, 5 slides
+const GAP_2_VH = 40; // breathing room after the carousel ends
+const CUT3_VH = 240; // diagonal wipe into Section 4 — same width as Cut 1 / Cut 2
+
+const TRACK_VH =
+  QROME_REVEALED_VH +
+  QROME_EXIT_VH +
+  GAP_1_VH +
+  INSIGHTS_ENTER_VH +
+  CAROUSEL_VH +
+  GAP_2_VH +
+  CUT3_VH;
+
+const K1 = 240 / TRACK_VH;
+const K2 = QROME_REVEALED_VH / TRACK_VH;
+const QROME_EXIT_START = K2;
+const QROME_EXIT_END = (QROME_REVEALED_VH + QROME_EXIT_VH) / TRACK_VH;
+const GAP1_END = (QROME_REVEALED_VH + QROME_EXIT_VH + GAP_1_VH) / TRACK_VH;
+const INSIGHTS_ENTER_END =
+  (QROME_REVEALED_VH + QROME_EXIT_VH + GAP_1_VH + INSIGHTS_ENTER_VH) / TRACK_VH;
+const CAROUSEL_END =
+  (QROME_REVEALED_VH + QROME_EXIT_VH + GAP_1_VH + INSIGHTS_ENTER_VH + CAROUSEL_VH) / TRACK_VH;
+const CUT3_START =
+  (QROME_REVEALED_VH + QROME_EXIT_VH + GAP_1_VH + INSIGHTS_ENTER_VH + CAROUSEL_VH + GAP_2_VH) /
+  TRACK_VH;
+const K3 = 1.0;
 
 export function ParallaxExperience() {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -136,28 +174,28 @@ export function ParallaxExperience() {
   // SPRING-BASED INERTIA PHYSICS FOR RESPONSIVE, WEIGHTED PARALLAX
   // =========================================================================
   const diagonalCutSpring = useSpring(scrollYProgress, {
-    stiffness: 85,
-    damping: 24,
-    mass: 0.8,
+    stiffness: 220,
+    damping: 30,
+    mass: 0.5,
     restDelta: 0.0001,
   });
 
   // Smooth cinematic inertia physics for background parallax and ambient transforms
   const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 80,
-    damping: 24,
-    mass: 0.75,
+    stiffness: 220,
+    damping: 30,
+    mass: 0.5,
     restDelta: 0.0001,
   });
 
   // Track active section index based on scroll progress
   useEffect(() => {
     const unsubscribe = smoothProgress.on('change', (p) => {
-      if (p < 0.22) {
+      if (p < K1) {
         setActiveSectionIndex(0);
-      } else if (p < 0.47) {
+      } else if (p < K2) {
         setActiveSectionIndex(1);
-      } else if (p < 0.72) {
+      } else if (p < QROME_EXIT_START) {
         setActiveSectionIndex(2);
       } else {
         setActiveSectionIndex(3);
@@ -241,16 +279,19 @@ export function ParallaxExperience() {
   );
 
   // =========================================================================
-  // WEIGHTED DIAGONAL CUT-IN TRANSITION GEOMETRY (TRANSITION 3: QROME -> HORIZONTAL INSIGHTS)
+  // WEIGHTED DIAGONAL CUT-IN TRANSITION GEOMETRY (TRANSITION 3: QROME/INSIGHTS -> PLACEHOLDER 2)
+  // Exactly the same shape/width as Transitions 1 & 2 (CUT3_VH), starting
+  // only at CUT3_START — well after the Insights carousel has finished
+  // (CAROUSEL_END) plus its own GAP_2_VH breathing room.
   // =========================================================================
   const cut3Left = useTransform(
     diagonalCutSpring,
-    [K2, K2 + 0.08 * (K3 - K2), K2 + 0.38 * (K3 - K2), K2 + 0.58 * (K3 - K2), K3],
+    [CUT3_START, CUT3_START + 0.08 * (K3 - CUT3_START), CUT3_START + 0.38 * (K3 - CUT3_START), CUT3_START + 0.58 * (K3 - CUT3_START), K3],
     [135, 125, 50, -12, -22]
   );
   const cut3Right = useTransform(
     diagonalCutSpring,
-    [K2, K2 + 0.08 * (K3 - K2), K2 + 0.38 * (K3 - K2), K2 + 0.58 * (K3 - K2), K3],
+    [CUT3_START, CUT3_START + 0.08 * (K3 - CUT3_START), CUT3_START + 0.38 * (K3 - CUT3_START), CUT3_START + 0.58 * (K3 - CUT3_START), K3],
     [110, 100, 25, -38, -48]
   );
 
@@ -388,11 +429,56 @@ export function ParallaxExperience() {
   const contendersPointerEvents = useTransform(smoothProgress, (p) =>
     p >= 0.52 * K1 && p < K1 + 0.46 * (K2 - K1) ? 'auto' : 'none'
   );
-  const placeholderPointerEvents = useTransform(smoothProgress, (p) =>
-    p >= K1 + 0.46 * (K2 - K1) && p < K2 + 0.46 * (K3 - K2) ? 'auto' : 'none'
+  // Section 3 (Qrome Products) is interactive from its own reveal until it
+  // starts exiting (QROME_EXIT_START) — Insights and Section 4 have their own
+  // separate pointer-events gates below, covering the rest of the timeline.
+  const sectionThreePointerEvents = useTransform(smoothProgress, (p) =>
+    p >= K1 + 0.46 * (K2 - K1) && p < QROME_EXIT_START ? 'auto' : 'none'
   );
-  const insightsPointerEvents = useTransform(smoothProgress, (p) =>
-    p >= K2 + 0.46 * (K3 - K2) ? 'auto' : 'none'
+
+  // Continuing to scroll within Section 3 first slides + fades the static
+  // Qrome placeholder content up and off-screen, then — after GAP_1_VH of
+  // pure background — the horizontal-scroll Agronomic Insights content
+  // slides + fades up into place from below. Driven off raw scrollYProgress
+  // (not the damped smoothProgress spring) so it triggers the instant the
+  // user scrolls, with no spring catch-up delay.
+  // The translate finishes faster than the fade (over the first half of the
+  // exit window) so the content is already most of the way off-screen before
+  // it's noticeably faded, instead of fading and moving at the same rate.
+  const placeholderContentY = useTransform(
+    scrollYProgress,
+    [QROME_EXIT_START, QROME_EXIT_START + 0.5 * (QROME_EXIT_END - QROME_EXIT_START)],
+    ['0%', '-100%']
+  );
+  const placeholderContentOpacity = useTransform(scrollYProgress, [QROME_EXIT_START, QROME_EXIT_END], [1, 0]);
+  const placeholderContentPointerEvents = useTransform(scrollYProgress, (p) =>
+    p < QROME_EXIT_START + 0.5 * (QROME_EXIT_END - QROME_EXIT_START) ? 'auto' : 'none'
+  );
+  // Gap: Qrome has fully exited, Insights hasn't entered yet, so only the
+  // persistent shared background shows while scrolling through GAP_1_VH.
+  const insightsContentY = useTransform(scrollYProgress, [GAP1_END, INSIGHTS_ENTER_END], ['100%', '0%']);
+  const insightsContentOpacity = useTransform(scrollYProgress, [GAP1_END, INSIGHTS_ENTER_END], [0, 1]);
+  const insightsContentPointerEvents = useTransform(scrollYProgress, (p) =>
+    p >= GAP1_END + 0.5 * (INSIGHTS_ENTER_END - GAP1_END) && p < CUT3_START ? 'auto' : 'none'
+  );
+
+  // =========================================================================
+  // SECTION 4 (PLACEHOLDER 2) PARALLAX DISPLACEMENTS INSIDE CUT 3
+  // Mirrors the same reveal timing Sections 2 & 3 used relative to their
+  // cuts, applied to Cut 3's own [CUT3_START, K3] span.
+  // =========================================================================
+  const section4TextY = useTransform(
+    smoothProgress,
+    [CUT3_START + 0.46 * (K3 - CUT3_START), CUT3_START + 0.58 * (K3 - CUT3_START)],
+    ['20%', '0%']
+  );
+  const section4TextOpacity = useTransform(
+    smoothProgress,
+    [CUT3_START + 0.46 * (K3 - CUT3_START), CUT3_START + 0.56 * (K3 - CUT3_START)],
+    [0, 1]
+  );
+  const sectionFourPointerEvents = useTransform(smoothProgress, (p) =>
+    p >= CUT3_START + 0.46 * (K3 - CUT3_START) ? 'auto' : 'none'
   );
 
   // Track cursor movement across viewport for Hero 3D tilt
@@ -448,7 +534,7 @@ export function ParallaxExperience() {
       if (e.key === 'PageDown') {
         if (activeSectionIndex === 0) scrollToContenders();
         else if (activeSectionIndex === 1) scrollToPlaceholder();
-        else if (activeSectionIndex === 2) scrollToInsights();
+        else if (activeSectionIndex === 2) scrollToSection4();
       } else if (e.key === 'PageUp') {
         if (activeSectionIndex === 3) scrollToPlaceholder();
         else if (activeSectionIndex === 2) scrollToContenders();
@@ -464,7 +550,7 @@ export function ParallaxExperience() {
     { id: 'revolution', label: 'Revolution', number: '01' },
     { id: 'simulations', label: 'Computers & Simulations', number: '02' },
     { id: 'products', label: 'Qrome® Products', number: '03' },
-    { id: 'insights', label: 'Agronomic Insights', number: '04' },
+    { id: 'placeholder2', label: 'More To Come', number: '04' },
   ];
 
   // Smooth scroll helper: return to Hero (Section 1)
@@ -488,11 +574,11 @@ export function ParallaxExperience() {
     window.scrollTo({ top: target, behavior: 'smooth' });
   };
 
-  // Smooth scroll helper: advance to Section 4 (Agronomic Insights Horizontal Text Scroll)
-  const scrollToInsights = () => {
+  // Smooth scroll helper: advance to Section 4 (Placeholder 2)
+  const scrollToSection4 = () => {
     if (!containerRef.current) return;
     const maxScroll = containerRef.current.offsetHeight - window.innerHeight;
-    const target = containerRef.current.offsetTop + maxScroll * (K2 + 0.58 * (K3 - K2));
+    const target = containerRef.current.offsetTop + maxScroll * (CUT3_START + 0.58 * (K3 - CUT3_START));
     window.scrollTo({ top: target, behavior: 'smooth' });
   };
 
@@ -500,7 +586,7 @@ export function ParallaxExperience() {
     if (index === 0) scrollToHero();
     else if (index === 1) scrollToContenders();
     else if (index === 2) scrollToPlaceholder();
-    else if (index === 3) scrollToInsights();
+    else if (index === 3) scrollToSection4();
   };
 
   const slide = SLIDES[currentSlide];
@@ -513,8 +599,9 @@ export function ParallaxExperience() {
       onTouchEnd={handleTouchEnd}
       style={{
         background: globalBgGradient,
+        height: `${TRACK_VH}vh`,
       }}
-      className="relative w-full h-[960vh] transition-colors duration-300"
+      className="relative w-full transition-colors duration-300"
     >
       {/* Sticky Fullscreen Viewport Stage */}
       <div className="sticky top-0 w-full h-screen min-h-[640px] overflow-hidden select-none">
@@ -856,44 +943,77 @@ export function ParallaxExperience() {
         </motion.div>
 
         {/* =========================================================================
-            SECTION 3: PLACEHOLDER (CLIPPED BY DYNAMIC DIAGONAL CUT-IN 2)
+            SECTION 3: QROME PRODUCTS (CLIPPED BY DYNAMIC DIAGONAL CUT-IN 2)
+            Continuing to scroll within this same revealed section slides from
+            the static placeholder content into the Agronomic Insights
+            horizontal-scroll content — no second diagonal cut. The container
+            itself carries the shared background color so any sub-pixel gap
+            between the two sliding panels blends in instead of exposing the
+            differently-colored global background layer underneath.
             ========================================================================= */}
         <motion.div
           id="placeholder-diagonal-clipped-container"
           style={{
             clipPath: clipPathString2,
             WebkitClipPath: clipPathString2,
-            pointerEvents: placeholderPointerEvents,
+            pointerEvents: sectionThreePointerEvents,
           }}
-          className="absolute inset-0 w-full h-full z-30 overflow-hidden [perspective:1400px]"
+          className="absolute inset-0 w-full h-full z-30 overflow-hidden bg-[#020704] [perspective:1400px]"
         >
-          <PlaceholderSection
-            contentY={placeholderTextY}
-            contentOpacity={placeholderTextOpacity}
-            mouseX={smoothMouseX}
-            mouseY={smoothMouseY}
-          />
+          {/* Persistent shared background — rendered once, never slides or
+              fades. Both the Qrome content and the Insights content sit on
+              top of this as foreground layers, so the background truly
+              never changes through the handoff (including the gap between
+              the two where neither panel's content is on screen). */}
+          <ProductsAtmosphereBackground mouseX={smoothMouseX} mouseY={smoothMouseY} />
+
+          <motion.div
+            style={{
+              y: placeholderContentY,
+              opacity: placeholderContentOpacity,
+              pointerEvents: placeholderContentPointerEvents,
+            }}
+            className="absolute inset-0"
+          >
+            <PlaceholderSection
+              contentY={placeholderTextY}
+              contentOpacity={placeholderTextOpacity}
+              mouseX={smoothMouseX}
+              mouseY={smoothMouseY}
+            />
+          </motion.div>
+
+          <motion.div
+            style={{
+              y: insightsContentY,
+              opacity: insightsContentOpacity,
+              pointerEvents: insightsContentPointerEvents,
+            }}
+            className="absolute inset-0"
+          >
+            <HorizontalTextScrollSection
+              scrollProgress={smoothProgress}
+              sectionProgressStart={INSIGHTS_ENTER_END}
+              sectionProgressEnd={CAROUSEL_END}
+              mouseX={smoothMouseX}
+              mouseY={smoothMouseY}
+            />
+          </motion.div>
         </motion.div>
 
         {/* =========================================================================
-            SECTION 4: HORIZONTAL TEXT SCROLL INSIGHTS (CLIPPED BY DYNAMIC DIAGONAL CUT-IN 3)
+            SECTION 4: PLACEHOLDER 2 (CLIPPED BY DYNAMIC DIAGONAL CUT-IN 3)
             ========================================================================= */}
         <motion.div
-          id="horizontal-insights-clipped-container"
+          id="placeholder2-diagonal-clipped-container"
           style={{
             clipPath: clipPathString3,
             WebkitClipPath: clipPathString3,
-            pointerEvents: insightsPointerEvents,
+            pointerEvents: sectionFourPointerEvents,
           }}
-          className="absolute inset-0 w-full h-full z-35 overflow-hidden"
+          className="absolute inset-0 w-full h-full z-[35] overflow-hidden [perspective:1400px]"
         >
-          <HorizontalTextScrollSection
-            scrollProgress={smoothProgress}
-            sectionProgressStart={0.72}
-            sectionProgressEnd={1.0}
-            mouseX={smoothMouseX}
-            mouseY={smoothMouseY}
-          />
+          <PlaceholderSection2 contentY={section4TextY} contentOpacity={section4TextOpacity} />
         </motion.div>
 
         {/* =========================================================================

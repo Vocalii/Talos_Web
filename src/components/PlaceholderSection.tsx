@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, MouseEvent, TouchEvent } from 'react';
 import { motion, AnimatePresence, MotionValue, useMotionValue, useSpring, useTransform } from 'motion/react';
 import { X, Sparkles, ShieldCheck, ChevronRight } from 'lucide-react';
-import { SunsetParticleField } from './SunsetParticleField';
 
 interface ProductData {
   id: number;
@@ -102,18 +101,6 @@ export function PlaceholderSection({
   const stageTiltRotateX = useTransform(smoothY, [-1, 1], [4.5, -4.5]);
   const stageTiltRotateY = useTransform(smoothX, [-1, 1], [-5.5, 5.5]);
 
-  // Background Parallax displacement
-  const bgDisplaceX = useTransform(smoothX, [-1, 1], [22, -22]);
-  const bgDisplaceY = useTransform(smoothY, [-1, 1], [16, -16]);
-
-  // Sunset Glow Flare displacement
-  const glowDisplaceX = useTransform(smoothX, [-1, 1], [35, -35]);
-  const glowDisplaceY = useTransform(smoothY, [-1, 1], [25, -25]);
-
-  // Dynamic light reflection hotspot for sunset lighting
-  const lightReflectionX = useTransform(smoothX, [-1, 1], ['25%', '75%']);
-  const lightReflectionY = useTransform(smoothY, [-1, 1], ['20%', '80%']);
-
   // Text layer: subdued displacement and counter-rotation to significantly reduce tilt on the headline/copy for optimal readability
   const textTiltRotateX = useTransform(smoothY, [-1, 1], [-3.6, 3.6]);
   const textTiltRotateY = useTransform(smoothX, [-1, 1], [4.4, -4.4]);
@@ -181,75 +168,11 @@ export function PlaceholderSection({
         }
       }}
       onTouchEnd={handlePointerUp}
-      className="relative w-full h-full min-h-screen overflow-hidden select-none flex items-center justify-center bg-[#020704] [perspective:1400px]"
+      className="relative w-full h-full min-h-screen overflow-hidden select-none flex items-center justify-center [perspective:1400px]"
     >
-      {/* =========================================================================
-          ATMOSPHERIC PARALLAX BACKGROUND (WARM SUNSET HORIZON & DEEP FOREST EMERALD)
-          ========================================================================= */}
-      <motion.div
-        id="products-background-parallax-layer"
-        style={{
-          x: bgDisplaceX,
-          y: bgDisplaceY,
-        }}
-        className="absolute -inset-[8%] pointer-events-none z-0 overflow-hidden"
-        aria-hidden="true"
-      >
-        {/* Top-Right Glowing Amber/Sunset Cloud Radiance with enhanced parallax */}
-        <motion.div
-          style={{
-            x: glowDisplaceX,
-            y: glowDisplaceY,
-            background:
-              'radial-gradient(ellipse 75% 60% at 75% 15%, rgba(245, 120, 25, 0.65) 0%, rgba(200, 85, 20, 0.45) 30%, rgba(120, 50, 15, 0.25) 60%, transparent 85%)',
-          }}
-          className="absolute -top-[12%] -right-[8%] w-[90vw] h-[80vh] pointer-events-none"
-        />
-
-        {/* Ambient Warm Golden Ray Flare */}
-        <motion.div
-          style={{
-            x: glowDisplaceX,
-            y: glowDisplaceY,
-            background:
-              'radial-gradient(circle at 60% 25%, rgba(251, 191, 36, 0.40) 0%, rgba(217, 119, 6, 0.22) 45%, transparent 75%)',
-          }}
-          className="absolute top-0 right-[12%] w-[50vw] h-[55vh] pointer-events-none opacity-80"
-        />
-
-        {/* Dynamic Specular Sunlight Hotspot tracking cursor */}
-        <motion.div
-          style={{
-            background: useTransform(
-              [lightReflectionX, lightReflectionY],
-              ([lx, ly]) =>
-                `radial-gradient(circle at ${lx} ${ly}, rgba(251, 191, 36, 0.18) 0%, rgba(245, 120, 25, 0.08) 35%, transparent 70%)`
-            ),
-          }}
-          className="absolute inset-0 pointer-events-none"
-        />
-
-        {/* Deep Forest Emerald / Velvet Obsidian Base */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              'radial-gradient(circle at 25% 65%, rgba(6, 32, 18, 0.88) 0%, rgba(2, 18, 10, 0.95) 55%, #010804 100%)',
-          }}
-        />
-
-        {/* Subtle Organic Vignette */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              'radial-gradient(circle at 50% 50%, transparent 45%, rgba(1, 6, 3, 0.70) 90%, #010603 100%)',
-          }}
-        />
-
-        {/* Dynamic 3D Depth Particle System (Foreground Bokeh, Golden Spores, Orbiting Pollen Motes) */}
-        <SunsetParticleField mouseX={activeMouseX} mouseY={activeMouseY} />
-      </motion.div>
+      {/* The shared atmospheric background is rendered once, persistently,
+          by the parent (ParallaxExperience) — this component is
+          foreground content only. */}
 
       {/* =========================================================================
           3D TILTED MAIN CONTENT STAGE CONTAINER
