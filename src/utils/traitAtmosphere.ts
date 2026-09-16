@@ -61,7 +61,26 @@ export function getTraitAtmosphere(trait: CornSeedTrait | null): TraitAtmosphere
         ambientCanvasColor: 'rgba(245, 158, 11, 0.15)',
       };
 
-    case 'Disease & Pest Defense':
+    case 'Statics':
+      return {
+        accent: '#f59e0b',
+        category: trait.category,
+        glow: 'rgba(245, 158, 11, 0.18)',
+        badgeBg: 'bg-amber-500/15 border-amber-500/30 text-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.08)]',
+        metricBg: 'bg-amber-400/[0.08] border-amber-400/30 text-amber-200',
+        border: 'border-amber-500/30',
+        scanColor: 'rgba(245, 158, 11, 0.6)',
+        radialGlow: 'rgba(245, 158, 11, 0.09)',
+        ambientWash: 'rgba(217, 119, 6, 0.05)',
+        ambientBase: 'rgba(180, 83, 9, 0.03)',
+        rimAccent: 'rgba(251, 191, 36, 0.04)',
+        vignetteTint: 'rgba(69, 26, 3, 0.40)',
+        blobGradient:
+          'radial-gradient(circle, rgba(245, 158, 11, 0.10) 0%, rgba(217, 119, 6, 0.04) 45%, transparent 75%)',
+        ambientCanvasColor: 'rgba(245, 158, 11, 0.06)',
+      };
+
+    case 'Nutrient Efficiency':
       return {
         accent: '#10b981',
         category: trait.category,
@@ -80,7 +99,7 @@ export function getTraitAtmosphere(trait: CornSeedTrait | null): TraitAtmosphere
         ambientCanvasColor: 'rgba(16, 185, 129, 0.14)',
       };
 
-    case 'Nutrient Efficiency':
+    case 'Pull':
       return {
         accent: '#14b8a6',
         category: trait.category,
@@ -97,25 +116,6 @@ export function getTraitAtmosphere(trait: CornSeedTrait | null): TraitAtmosphere
         blobGradient:
           'radial-gradient(circle, rgba(20, 184, 166, 0.24) 0%, rgba(13, 148, 136, 0.10) 45%, transparent 75%)',
         ambientCanvasColor: 'rgba(20, 184, 166, 0.15)',
-      };
-
-    case 'Kernel Quality':
-      return {
-        accent: '#a855f7',
-        category: trait.category,
-        glow: 'rgba(168, 85, 247, 0.35)',
-        badgeBg: 'bg-purple-500/20 border-purple-500/40 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.2)]',
-        metricBg: 'bg-purple-400/15 border-purple-400/40 text-purple-200',
-        border: 'border-purple-500/40',
-        scanColor: 'rgba(168, 85, 247, 0.8)',
-        radialGlow: 'rgba(168, 85, 247, 0.22)',
-        ambientWash: 'rgba(147, 51, 234, 0.12)',
-        ambientBase: 'rgba(107, 33, 168, 0.08)',
-        rimAccent: 'rgba(192, 132, 252, 0.09)',
-        vignetteTint: 'rgba(59, 7, 100, 0.40)',
-        blobGradient:
-          'radial-gradient(circle, rgba(168, 85, 247, 0.24) 0%, rgba(147, 51, 234, 0.10) 45%, transparent 75%)',
-        ambientCanvasColor: 'rgba(168, 85, 247, 0.15)',
       };
 
     case 'Yield & Architecture':
@@ -137,23 +137,23 @@ export function getTraitAtmosphere(trait: CornSeedTrait | null): TraitAtmosphere
         ambientCanvasColor: 'rgba(239, 68, 68, 0.14)',
       };
 
-    case 'Germination & Vigor':
+    case 'Isometric':
       return {
-        accent: '#84cc16',
+        accent: '#f4f4f5',
         category: trait.category,
-        glow: 'rgba(132, 204, 22, 0.35)',
-        badgeBg: 'bg-lime-500/20 border-lime-500/40 text-lime-300 shadow-[0_0_12px_rgba(132,204,22,0.2)]',
-        metricBg: 'bg-lime-400/15 border-lime-400/40 text-lime-200',
-        border: 'border-lime-500/40',
-        scanColor: 'rgba(132, 204, 22, 0.8)',
-        radialGlow: 'rgba(132, 204, 22, 0.20)',
-        ambientWash: 'rgba(101, 163, 13, 0.11)',
-        ambientBase: 'rgba(77, 124, 15, 0.07)',
-        rimAccent: 'rgba(163, 230, 53, 0.08)',
-        vignetteTint: 'rgba(26, 46, 5, 0.40)',
+        glow: 'rgba(255, 255, 255, 0.15)',
+        badgeBg: 'bg-white/10 border-white/25 text-white shadow-[0_0_8px_rgba(255,255,255,0.08)]',
+        metricBg: 'bg-white/[0.08] border-white/25 text-zinc-100',
+        border: 'border-white/25',
+        scanColor: 'rgba(255, 255, 255, 0.6)',
+        radialGlow: 'rgba(255, 255, 255, 0.08)',
+        ambientWash: 'rgba(255, 255, 255, 0.04)',
+        ambientBase: 'rgba(200, 200, 200, 0.03)',
+        rimAccent: 'rgba(255, 255, 255, 0.04)',
+        vignetteTint: 'rgba(20, 20, 20, 0.40)',
         blobGradient:
-          'radial-gradient(circle, rgba(132, 204, 22, 0.22) 0%, rgba(101, 163, 13, 0.09) 45%, transparent 75%)',
-        ambientCanvasColor: 'rgba(132, 204, 22, 0.14)',
+          'radial-gradient(circle, rgba(255, 255, 255, 0.10) 0%, rgba(200, 200, 200, 0.04) 45%, transparent 75%)',
+        ambientCanvasColor: 'rgba(255, 255, 255, 0.06)',
       };
 
     default:

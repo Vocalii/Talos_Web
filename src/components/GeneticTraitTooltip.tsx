@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { CornSeedTrait } from '../data/cornTraits';
-import { Dna, Sparkles, ShieldCheck, Sprout, Droplets, Zap, Activity, X, ChevronRight, Cpu } from 'lucide-react';
+import { Dna, Sparkles, ShieldCheck, Sprout, Droplets, Zap, X, ChevronRight } from 'lucide-react';
 import { getTraitAtmosphere } from '../utils/traitAtmosphere';
 
 interface GeneticTraitSidePanelProps {
@@ -8,30 +8,44 @@ interface GeneticTraitSidePanelProps {
   onClose: () => void;
 }
 
+// Styled after the Talos app's own MoveDirectory card language: a thin
+// hairline frame, an inset "media" panel with bottom-anchored name and an
+// extreme-tracking category subtitle flanked by divider lines, and a small
+// pill status badge — rather than the previous dense, filled data-card look.
 export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelProps) {
   if (!trait) return null;
 
   const getCategoryIcon = (category: CornSeedTrait['category']) => {
     switch (category) {
       case 'Drought & Climate':
-        return <Droplets className="w-4 h-4 text-amber-300" />;
-      case 'Disease & Pest Defense':
-        return <ShieldCheck className="w-4 h-4 text-emerald-400" />;
+        return <Droplets className="w-10 h-10" />;
+      case 'Statics':
+        return <ShieldCheck className="w-10 h-10" />;
       case 'Nutrient Efficiency':
-        return <Zap className="w-4 h-4 text-teal-400" />;
-      case 'Germination & Vigor':
-        return <Sprout className="w-4 h-4 text-lime-300" />;
-      case 'Kernel Quality':
-        return <Sparkles className="w-4 h-4 text-purple-300" />;
+        return <Zap className="w-10 h-10" />;
+      case 'Isometric':
+        return <Sprout className="w-10 h-10" />;
+      case 'Pull':
+        return <Sparkles className="w-10 h-10" />;
       case 'Yield & Architecture':
       default:
-        return <Dna className="w-4 h-4 text-rose-400" />;
+        return <Dna className="w-10 h-10" />;
     }
   };
 
   const theme = getTraitAtmosphere(trait);
 
-  // Stagger container variants for dramatic phase-in
+  const getStatusLabel = (category: CornSeedTrait['category']) => {
+    switch (category) {
+      case 'Isometric':
+        return 'Available';
+      case 'Statics':
+        return 'Mastered';
+      default:
+        return 'Active Trait';
+    }
+  };
+
   const containerVariants = {
     hidden: {
       opacity: 0,
@@ -74,7 +88,7 @@ export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelP
   };
 
   return (
-    <div className="w-full max-w-lg select-none">
+    <div className="w-full max-w-[260px] sm:max-w-xs select-none">
       <motion.div
         key={`trait-card-${trait.id}`}
         variants={containerVariants}
@@ -84,7 +98,7 @@ export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelP
         style={{
           boxShadow: `0 30px 60px -12px rgba(0, 0, 0, 0.95), 0 0 45px -5px ${theme.glow}`,
         }}
-        className={`w-full rounded-2xl backdrop-blur-2xl bg-[#0a0a0a]/92 border ${theme.border} p-6 sm:p-7 text-left shadow-2xl relative overflow-hidden`}
+        className="w-full max-h-[85vh] overflow-y-auto overflow-x-hidden rounded-sm border border-white/10 bg-black/50 backdrop-blur-2xl text-left shadow-2xl relative"
       >
         {/* Cinematic Laser Sweep Line across the top rim */}
         <motion.div
@@ -97,91 +111,85 @@ export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelP
           className="absolute top-0 left-0 w-full h-[2px] pointer-events-none z-20"
         />
 
-        {/* Ambient background bloom */}
-        <div
-          className="absolute -top-24 -right-24 w-52 h-52 rounded-full blur-3xl pointer-events-none opacity-40 transition-all duration-700"
-          style={{ background: theme.accent }}
-          aria-hidden="true"
-        />
+        {/* Close Button */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 z-30 p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+          title="Close card (Esc or reclick node)"
+          aria-label="Close trait card"
+        >
+          <X className="w-4 h-4" />
+        </button>
 
-        {/* Header: Category Badge, Chromosome, and Close button */}
-        <motion.div variants={itemVariants} className="flex items-center justify-between gap-3 mb-4 relative z-10">
-          <div className="flex items-center gap-2">
-            <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${theme.badgeBg}`}
-            >
-              {getCategoryIcon(trait.category)}
-              <span>{trait.category}</span>
-            </span>
-          </div>
+        {/* Inset "media" panel — renders the trait's uploaded image when
+            one is set (see the `image` field in src/data/cornTraits.ts);
+            otherwise falls back to the ambient glow + category glyph
+            placeholder, echoing the same inset-frame proportions Talos
+            uses for its move photography. */}
+        <motion.div variants={itemVariants} className="relative m-3 rounded-sm overflow-hidden aspect-[3/4]">
+          {trait.image ? (
+            <img
+              src={trait.image}
+              alt={trait.traitName}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : (
+            <div className="absolute inset-0" style={{ background: theme.blobGradient }} aria-hidden="true" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/70" aria-hidden="true" />
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-xs font-mono text-slate-300 bg-black/60 border border-white/10 px-2.5 py-1 rounded-md shadow-inner">
-              <Activity className="w-3.5 h-3.5 text-white animate-pulse" />
-              <span>{trait.chromosome}</span>
+          {!trait.image && (
+            <>
+              {/* Decorative rotated geometric symbols, low opacity */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20" aria-hidden="true">
+                <div className="w-28 h-28 border border-white/40 rotate-45" />
+                <div className="absolute w-20 h-20 rounded-full border border-white/40" />
+              </div>
+
+              {/* Large category glyph */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-25" style={{ color: theme.accent }} aria-hidden="true">
+                {getCategoryIcon(trait.category)}
+              </div>
+            </>
+          )}
+
+          {/* Status pill */}
+          <span
+            className="absolute top-4 left-4 px-3 py-1 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-[8px] font-black tracking-[0.35em] uppercase"
+            style={{ color: theme.accent }}
+          >
+            {getStatusLabel(trait.category)}
+          </span>
+
+          {/* Bottom-anchored name + category/chromosome subtitle */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5">
+            <h3 className="font-display font-light text-base sm:text-lg tracking-[0.12em] uppercase text-white/95 drop-shadow-2xl leading-snug">
+              {trait.traitName}
+            </h3>
+            <div className="mt-1 gap-3">
+              <span className="h-px w-6 bg-white/20" />
+              <span className="text-[6px] sm:text-[8px] font-black uppercase tracking-[0.2em] text-white/40 whitespace-nowrap">
+                {trait.category} • {trait.chromosome}
+              </span>
+              <span className="h-px w-6 bg-white/20" />
             </div>
-
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-              title="Close card (Esc or reclick node)"
-              aria-label="Close trait card"
-            >
-              <X className="w-4 h-4" />
-            </button>
           </div>
-        </motion.div>
-
-        {/* Trait Title */}
-        <motion.h3
-          variants={itemVariants}
-          className="text-xl sm:text-2xl font-bold text-white tracking-tight leading-snug mb-2 relative z-10 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
-        >
-          {trait.traitName}
-        </motion.h3>
-
-        {/* Gene Locus Tag and Strand Information */}
-        <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-2.5 mb-4 relative z-10">
-          <span className="text-xs font-mono text-zinc-200 font-semibold bg-zinc-950/80 border border-white/35 px-2.5 py-0.5 rounded shadow-sm">
-            LOCUS: {trait.geneLocus}
-          </span>
-          <span className="text-xs text-slate-400 font-mono flex items-center gap-1 bg-black/40 px-2 py-0.5 rounded border border-white/5">
-            <Cpu className="w-3 h-3 text-white/80" />
-            {trait.strand}
-          </span>
-        </motion.div>
-
-        {/* Key Metric Highlight Card */}
-        <motion.div
-          variants={itemVariants}
-          className={`flex items-center justify-between px-4 py-3 rounded-xl border ${theme.metricBg} bg-black/50 mb-4 relative z-10 backdrop-blur-md shadow-inner`}
-        >
-          <span className="text-sm font-medium text-slate-100">
-            {trait.benefit}
-          </span>
-          <span className="text-sm font-bold font-mono tracking-tight text-white ml-3 whitespace-nowrap bg-zinc-950/90 px-2.5 py-1 rounded-lg border border-white/35 shadow-inner">
-            {trait.keyMetric}
-          </span>
         </motion.div>
 
         {/* Biological Description */}
-        <motion.p variants={itemVariants} className="text-sm text-slate-300 leading-relaxed mb-5 relative z-10">
+        <motion.p variants={itemVariants} className="px-3.5 sm:px-4 mt-2 text-[11px] sm:text-xs text-white/50 font-light leading-relaxed">
           {trait.description}
         </motion.p>
 
         {/* Footer: Expression Level & Quick Hint */}
         <motion.div
           variants={itemVariants}
-          className="pt-3.5 border-t border-white/10 flex items-center justify-between text-xs text-slate-400 font-mono relative z-10"
+          className="mt-3 px-3.5 sm:px-4 py-2.5 border-t border-white/10 flex items-center justify-between text-[9px] text-white/40 font-mono"
         >
-          <div className="flex items-center gap-1.5">
-            <span className="text-slate-500">EXPRESSION:</span>
-            <span className="text-zinc-200 font-semibold">{trait.expressionLevel}</span>
-          </div>
-          <div className="flex items-center gap-1 text-[11px] text-slate-500">
+          <div className="flex items-center gap-1 text-[10px] text-white/80">
             <span>Reclick or Esc to deselect</span>
-            <ChevronRight className="w-3 h-3 text-slate-500" />
+            <ChevronRight className="w-3 h-3 text-white/30" />
           </div>
         </motion.div>
       </motion.div>

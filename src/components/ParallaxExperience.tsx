@@ -897,6 +897,23 @@ export function ParallaxExperience() {
     setIsFeaturesExploreActive(active);
   };
 
+  // Same fix as "View The Features": opening Explore The Library always
+  // snaps to Contenders' own settled anchor point first, so the constellation
+  // and its featured nodes always appear in the same spot regardless of
+  // where the user was scrolled to when they clicked it.
+  const handleExploreActiveChange = (active: boolean) => {
+    if (active) {
+      // A dedicated, slightly-lower anchor than scrollToContenders (which
+      // other nav — keyboard, swipe, nav dots — still uses unchanged).
+      if (containerRef.current) {
+        const maxScroll = containerRef.current.offsetHeight - window.innerHeight;
+        const target = containerRef.current.offsetTop + maxScroll * (0.66 * K1);
+        smoothScrollTo(target, 1400);
+      }
+    }
+    setIsExploreActive(active);
+  };
+
   // Smooth scroll helper: jump to a specific slide in Section 3's horizontal scroll
   const scrollToInsightsSlide = (slideIndex: number) => {
     if (!containerRef.current) return;
@@ -1403,7 +1420,7 @@ export function ParallaxExperience() {
               style={{ pointerEvents: isExploreActive ? 'none' : 'auto' }}
               className="mt-8 lg:mt-0 pointer-events-auto [transform:translateZ(32px)] flex items-center justify-center lg:mr-8 xl:mr-14 self-center lg:self-auto"
             >
-              <ExploreLibraryButton onClick={() => setIsExploreActive(true)} />
+              <ExploreLibraryButton onClick={() => handleExploreActiveChange(true)} />
             </motion.div>
           </motion.div>
         </motion.div>
@@ -1759,7 +1776,7 @@ export function ParallaxExperience() {
                 Explore Mode
               </span>
               <span className="text-[11px] sm:text-xs font-light text-white/40 tracking-wide">
-                Click a node to view corn trait card
+                Click a Node to View Available Moves
               </span>
             </motion.div>
           )}
@@ -1771,7 +1788,7 @@ export function ParallaxExperience() {
             <motion.div
               id="genetic-trait-side-panel-container"
               key="genetic-trait-side-panel-container"
-              className="fixed z-40 right-6 sm:right-10 lg:right-16 xl:right-24 top-1/2 -translate-y-1/2 w-full max-w-md lg:max-w-lg pointer-events-auto"
+              className="fixed z-40 right-10 sm:right-16 lg:right-24 xl:right-32 top-1/2 -translate-y-1/2 w-full max-w-[260px] sm:max-w-xs pointer-events-auto"
             >
               {/* Backing Ambient Aura behind the trait tooltip */}
               <div

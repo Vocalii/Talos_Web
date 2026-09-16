@@ -9,23 +9,23 @@ interface TextSlide {
 const TEXT_SLIDES: TextSlide[] = [
   {
     id: 'advantage',
-    headline: '+7.7 bu/A Yield Advantage in 2020 On-Farm Trials',
+    headline: 'Real-Time Form Analysis',
   },
   {
     id: 'protection',
-    headline: '2 Modes Above & 2 Below for Complete Insect Control',
+    headline: 'Community & Competition',
   },
   {
     id: 'simulations',
-    headline: 'Over 100 Million Virtual Genomic Simulations Run Annually',
+    headline: 'Health & Wearable Integration',
   },
   {
     id: 'root-mass',
-    headline: 'Unmatched Root Volume & Extended Drought Resilience',
+    headline: 'Mastery System',
   },
   {
     id: 'elite-performance',
-    headline: 'The Most Optimized Agronomic Balance in the Portfolio',
+    headline: 'And Many More Moves',
   },
 ];
 
@@ -191,7 +191,7 @@ export function HorizontalTextScrollSection({
     window.addEventListener('resize', computeShift);
 
     if (typeof document !== 'undefined' && 'fonts' in document) {
-      document.fonts.ready.then(computeShift).catch(() => {});
+      document.fonts.ready.then(computeShift).catch(() => { });
     }
 
     let ro: ResizeObserver | null = null;

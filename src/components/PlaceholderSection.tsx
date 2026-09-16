@@ -123,10 +123,10 @@ const PRODUCTS: ProductData[] = [
   },
   {
     id: 3,
-    brand: 'PIONEER® BRAND',
-    name: 'QROME® PRODUCTS',
+    brand: '',
+    name: 'Built to Unlock Your Potential',
     description:
-      'The most optimized balance of insect protection and agronomic performance in the Pioneer portfolio. Two modes of action above and two below, for effective insect control, as well as a 7.7 bu/A yield advantage over SmartStax® technology in 2020 on-farm trials.[3]',
+      'Talos combines structured skill progressions, an AI coach that responds to every session, and workouts built around your specific weaknesses. Be one of the first to experience a new standard in calisthenics training',
     footnote: '[3]',
     modesAbove: 2,
     modesBelow: 2,
@@ -685,27 +685,27 @@ export function PlaceholderSection({
                     <div className="scale-[0.85] sm:scale-[0.9] origin-left -mr-2 sm:-mr-3">
                       <ExploreLibraryButton
                         id="view-specs-btn"
-                        ariaLabel="View Specs"
-                        lineOne="VIEW"
-                        lineTwo="SPECS"
+                        ariaLabel="Personal Feedback"
+                        lineOne="PERSONAL"
+                        lineTwo="FEEDBACK"
                         variant="secondary"
                       />
                     </div>
                     <div className="scale-[0.85] sm:scale-[0.9] origin-left -mr-2 sm:-mr-3">
                       <ExploreLibraryButton
                         id="compare-traits-btn"
-                        ariaLabel="Compare Traits"
-                        lineOne="COMPARE"
-                        lineTwo="TRAITS"
+                        ariaLabel="Level Up"
+                        lineOne="LEVEL"
+                        lineTwo="UP"
                         variant="secondary"
                       />
                     </div>
                     <div className="scale-[0.85] sm:scale-[0.9] origin-left">
                       <ExploreLibraryButton
                         id="find-a-dealer-btn"
-                        ariaLabel="Find A Dealer"
-                        lineOne="FIND A"
-                        lineTwo="DEALER"
+                        ariaLabel="Monitor Progress"
+                        lineOne="MONITOR"
+                        lineTwo="PROGRESS"
                         variant="secondary"
                       />
                     </div>
