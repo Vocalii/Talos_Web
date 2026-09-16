@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
 import { CornSeedTrait } from '../data/cornTraits';
 import { Dna, Sparkles, ShieldCheck, Sprout, Droplets, Zap, Activity, X, ChevronRight, Cpu } from 'lucide-react';
+import { getTraitAtmosphere } from '../utils/traitAtmosphere';
 
 interface GeneticTraitSidePanelProps {
   trait: CornSeedTrait | null;
@@ -19,68 +20,16 @@ export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelP
       case 'Nutrient Efficiency':
         return <Zap className="w-4 h-4 text-teal-400" />;
       case 'Germination & Vigor':
-        return <Sprout className="w-4 h-4 text-zinc-200" />;
+        return <Sprout className="w-4 h-4 text-lime-300" />;
       case 'Kernel Quality':
         return <Sparkles className="w-4 h-4 text-purple-300" />;
       case 'Yield & Architecture':
       default:
-        return <Dna className="w-4 h-4 text-red-400" />;
+        return <Dna className="w-4 h-4 text-rose-400" />;
     }
   };
 
-  const getCategoryTheme = (category: CornSeedTrait['category']) => {
-    switch (category) {
-      case 'Drought & Climate':
-        return {
-          badgeBg: 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.2)]',
-          metricBg: 'bg-amber-400/15 border-amber-400/40 text-amber-200',
-          glow: 'rgba(245, 158, 11, 0.35)',
-          border: 'border-amber-500/40',
-          accent: '#f59e0b',
-          scanColor: 'rgba(245, 158, 11, 0.8)',
-        };
-      case 'Disease & Pest Defense':
-        return {
-          badgeBg: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300 shadow-[0_0_12px_rgba(34,197,94,0.2)]',
-          metricBg: 'bg-emerald-400/15 border-emerald-400/40 text-emerald-200',
-          glow: 'rgba(34, 197, 94, 0.35)',
-          border: 'border-emerald-500/40',
-          accent: '#22c55e',
-          scanColor: 'rgba(34, 197, 94, 0.8)',
-        };
-      case 'Nutrient Efficiency':
-        return {
-          badgeBg: 'bg-teal-500/20 border-teal-500/40 text-teal-300 shadow-[0_0_12px_rgba(20,184,166,0.2)]',
-          metricBg: 'bg-teal-400/15 border-teal-400/40 text-teal-200',
-          glow: 'rgba(20, 184, 166, 0.35)',
-          border: 'border-teal-500/40',
-          accent: '#14b8a6',
-          scanColor: 'rgba(20, 184, 166, 0.8)',
-        };
-      case 'Kernel Quality':
-        return {
-          badgeBg: 'bg-purple-500/20 border-purple-500/40 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.2)]',
-          metricBg: 'bg-purple-400/15 border-purple-400/40 text-purple-200',
-          glow: 'rgba(168, 85, 247, 0.35)',
-          border: 'border-purple-500/40',
-          accent: '#a855f7',
-          scanColor: 'rgba(168, 85, 247, 0.8)',
-        };
-      case 'Germination & Vigor':
-      case 'Yield & Architecture':
-      default:
-        return {
-          badgeBg: 'bg-red-500/20 border-red-500/40 text-red-300 shadow-[0_0_12px_rgba(239,68,68,0.2)]',
-          metricBg: 'bg-red-400/15 border-red-400/40 text-red-200',
-          glow: 'rgba(239, 68, 68, 0.35)',
-          border: 'border-red-500/40',
-          accent: '#ef4444',
-          scanColor: 'rgba(239, 68, 68, 0.8)',
-        };
-    }
-  };
-
-  const theme = getCategoryTheme(trait.category);
+  const theme = getTraitAtmosphere(trait);
 
   // Stagger container variants for dramatic phase-in
   const containerVariants = {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, MotionValue, AnimatePresence } from 'motion/react';
 import { Check } from 'lucide-react';
 import { ParticleField } from './ParticleField';
+import { CinematicDownloadButton } from './CinematicDownloadButton';
 
 interface PlaceholderSection2Props {
   contentY?: MotionValue<string>;
@@ -63,35 +64,15 @@ export function PlaceholderSection2({ contentY, contentOpacity }: PlaceholderSec
           to get started
         </h2>
 
-        {/* Get Early Access — bold, solid, and prominent, deliberately
-            distinct from the small glass pill CTA in the header: solid
-            white fill for maximum contrast against the dark background,
-            with an emerald glow bloom on hover instead of a subtle
-            glass treatment. */}
-        <button
-          id="btn-get-early-access"
-          onClick={handleNotify}
-          className="glass group relative mt-10 sm:mt-12 px-10 sm:px-14 py-4 sm:py-5 rounded-full border border-white/25 hover:border-emerald-400/50 cursor-pointer active:scale-95 transition-all duration-300 hover:scale-[1.03] shadow-[0_20px_60px_rgba(0,0,0,0.55)]"
-          aria-label="Get early access"
-        >
-          {/* Ambient emerald glow bloom, more pronounced than the header's
-              button so this reads as the primary CTA */}
-          <span
-            className="absolute -inset-5 rounded-full pointer-events-none opacity-40 group-hover:opacity-100 blur-xl transition-opacity duration-500"
-            style={{ background: 'radial-gradient(circle, rgba(34,197,94,0.45) 0%, transparent 70%)' }}
-            aria-hidden="true"
+        {/* Get Early Access — Cinematic, high-tech biotechnology interactive CTA
+            featuring cursor-tracking caustic light, conic laser perimeter beam,
+            anamorphic lens flare, and multi-stage volumetric bloom. */}
+        <div className="mt-10 sm:mt-12">
+          <CinematicDownloadButton
+            id="btn-get-early-access"
+            onClick={handleNotify}
           />
-
-          {/* Hover brightening wash on the glass surface itself */}
-          <span
-            className="absolute inset-0 rounded-full pointer-events-none bg-white/0 group-hover:bg-white/[0.06] transition-colors duration-300"
-            aria-hidden="true"
-          />
-
-          <span className="relative font-display font-medium text-sm sm:text-base tracking-[0.14em] uppercase text-white">
-            Get Early Access
-          </span>
-        </button>
+        </div>
 
         {/* Toast notification feedback on button click */}
         <AnimatePresence>

@@ -13,6 +13,7 @@ import { ExploreLibraryButton } from './ExploreLibraryButton';
 import { GeneticLibraryModal } from './GeneticLibraryModal';
 import { GeneticTraitSidePanel } from './GeneticTraitTooltip';
 import { CornSeedTrait } from '../data/cornTraits';
+import { getTraitAtmosphere } from '../utils/traitAtmosphere';
 
 interface SlideData {
   headline: string[];
@@ -226,6 +227,7 @@ export function ParallaxExperience() {
   const [isExploreActive, setIsExploreActive] = useState(false);
   const [isFeaturesExploreActive, setIsFeaturesExploreActive] = useState(false);
   const [selectedGeneticTrait, setSelectedGeneticTrait] = useState<CornSeedTrait | null>(null);
+  const activeTraitAtmosphere = getTraitAtmosphere(selectedGeneticTrait);
   const currentSlide = 0;
   const [isHeroRevealed, setIsHeroRevealed] = useState(true);
   const [isSectionRevealed, setIsSectionRevealed] = useState(false);
@@ -1200,6 +1202,56 @@ export function ParallaxExperience() {
                 className="absolute inset-0 pointer-events-none"
                 aria-hidden="true"
               />
+
+              {/* Dynamic Reactive Node Atmosphere: Alters the background lighting depending on the active node/tooltip */}
+              <AnimatePresence>
+                {isExploreActive && selectedGeneticTrait && (
+                  <motion.div
+                    key={`node-bg-atmosphere-${selectedGeneticTrait.category}-${selectedGeneticTrait.id}`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute inset-0 pointer-events-none z-[4]"
+                  >
+                    {/* Primary Atmospheric Wash: Radial bloom biased towards the active node & trait panel */}
+                    <div
+                      className="absolute inset-0 pointer-events-none mix-blend-screen transition-all duration-700"
+                      style={{
+                        background: `radial-gradient(ellipse 95% 80% at 65% 48%, ${activeTraitAtmosphere.radialGlow} 0%, ${activeTraitAtmosphere.ambientWash} 42%, transparent 75%)`,
+                      }}
+                      aria-hidden="true"
+                    />
+
+                    {/* Secondary Deep Chromatic Underglow across the stage */}
+                    <div
+                      className="absolute inset-0 pointer-events-none transition-all duration-700"
+                      style={{
+                        background: `radial-gradient(circle at 40% 55%, ${activeTraitAtmosphere.ambientBase} 0%, transparent 68%)`,
+                      }}
+                      aria-hidden="true"
+                    />
+
+                    {/* Subtle Chromatic Vignette Tint at edges for atmospheric immersion */}
+                    <div
+                      className="absolute inset-0 pointer-events-none mix-blend-multiply opacity-60 transition-all duration-700"
+                      style={{
+                        background: `radial-gradient(ellipse at 50% 50%, transparent 40%, ${activeTraitAtmosphere.vignetteTint} 100%)`,
+                      }}
+                      aria-hidden="true"
+                    />
+
+                    {/* Horizon Rim Sheen */}
+                    <div
+                      className="absolute inset-0 pointer-events-none mix-blend-color-dodge opacity-50 transition-all duration-700"
+                      style={{
+                        background: `linear-gradient(135deg, ${activeTraitAtmosphere.rimAccent} 0%, transparent 40%, ${activeTraitAtmosphere.rimAccent} 100%)`,
+                      }}
+                      aria-hidden="true"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
 
             {/* Interactive Constellation Canvas: 3D Helical Spiral with scroll-driven rotation */}
@@ -1219,9 +1271,7 @@ export function ParallaxExperience() {
             </motion.div>
           </motion.div>
 
-          {/* Slow, autonomously-drifting amber glow blob — independent of mouse
-              parallax, pairs with the amber/emerald nexus-hub nodes above so
-              the atmosphere doesn't read as flat/mono. */}
+          {/* Slow, autonomously-drifting glow blob — shifts its color dynamically when a node/tooltip is active */}
           <motion.div
             animate={{
               x: [0, 60, -20, 0],
@@ -1232,10 +1282,12 @@ export function ParallaxExperience() {
               repeat: Infinity,
               ease: 'easeInOut',
             }}
-            className="absolute top-[15%] right-[10%] w-[36vw] h-[36vw] max-w-[520px] max-h-[520px] rounded-full pointer-events-none z-[15] opacity-70"
+            className="absolute top-[15%] right-[10%] w-[36vw] h-[36vw] max-w-[520px] max-h-[520px] rounded-full pointer-events-none z-[15] opacity-70 transition-all duration-700"
             style={{
               background:
-                'radial-gradient(circle, rgba(245, 158, 11, 0.10) 0%, rgba(245, 158, 11, 0.04) 45%, transparent 75%)',
+                isExploreActive && selectedGeneticTrait
+                  ? activeTraitAtmosphere.blobGradient
+                  : 'radial-gradient(circle, rgba(245, 158, 11, 0.10) 0%, rgba(245, 158, 11, 0.04) 45%, transparent 75%)',
             }}
             aria-hidden="true"
           />
@@ -1721,6 +1773,14 @@ export function ParallaxExperience() {
               key="genetic-trait-side-panel-container"
               className="fixed z-40 right-6 sm:right-10 lg:right-16 xl:right-24 top-1/2 -translate-y-1/2 w-full max-w-md lg:max-w-lg pointer-events-auto"
             >
+              {/* Backing Ambient Aura behind the trait tooltip */}
+              <div
+                className="absolute -inset-10 rounded-3xl blur-3xl pointer-events-none opacity-45 -z-10 transition-all duration-700"
+                style={{
+                  background: `radial-gradient(circle, ${activeTraitAtmosphere.radialGlow} 0%, transparent 75%)`,
+                }}
+                aria-hidden="true"
+              />
               <GeneticTraitSidePanel
                 trait={selectedGeneticTrait}
                 onClose={() => setSelectedGeneticTrait(null)}
