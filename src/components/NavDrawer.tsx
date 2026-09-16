@@ -5,9 +5,10 @@ import { PioneerLogo } from './PioneerLogo';
 interface NavDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  onLogoClick?: () => void;
 }
 
-export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
+export function NavDrawer({ isOpen, onClose, onLogoClick }: NavDrawerProps) {
   const menuItems = [
     { name: 'Corn Hybrids & Trait Technology', desc: 'Industry-leading genetics built for maximum yield potential', icon: Sprout },
     { name: 'Seed Traits & Protection', desc: 'Borer, rootworm, and herbicide tolerance systems', icon: Shield },
@@ -41,7 +42,17 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
             {/* Header */}
             <div>
               <div className="flex items-center justify-between px-6 py-6 border-b border-emerald-950/80">
-                <PioneerLogo />
+                <button
+                  id="nav-drawer-pioneer-logo-btn"
+                  onClick={() => {
+                    onClose();
+                    onLogoClick?.();
+                  }}
+                  className="focus:outline-none cursor-pointer hover:opacity-90 active:scale-95 transition-all text-left"
+                  aria-label="Return to top"
+                >
+                  <PioneerLogo />
+                </button>
                 <button
                   id="close-nav-drawer-btn"
                   onClick={onClose}

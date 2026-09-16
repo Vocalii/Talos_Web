@@ -1,10 +1,14 @@
-import { useRef, useEffect } from 'react';
-import { MotionValue } from 'motion/react';
+import { useRef, useEffect, useState } from 'react';
+import { MotionValue, motion, AnimatePresence } from 'motion/react';
+import { CornSeedTrait, getCornTrait } from '../data/cornTraits';
 
 interface ConstellationCanvasProps {
   className?: string;
   activeSlide?: number;
   scrollProgress?: MotionValue<number>;
+  isShiftedLeft?: boolean;
+  selectedTrait?: CornSeedTrait | null;
+  onSelectTrait?: (trait: CornSeedTrait | null) => void;
 }
 
 interface NodePoint {
@@ -51,9 +55,38 @@ export function ConstellationCanvas({
   className = '',
   activeSlide = 0,
   scrollProgress,
+  isShiftedLeft = false,
+  selectedTrait = null,
+  onSelectTrait,
 }: ConstellationCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const progressRef = useRef(0);
+  const isShiftedLeftRef = useRef(isShiftedLeft);
+  const onSelectTraitRef = useRef(onSelectTrait);
+
+  const hoveredNodeIdRef = useRef<number | null>(null);
+  const selectedNodeIdRef = useRef<number | null>(selectedTrait?.id ?? null);
+  const activeHoveredNodeRef = useRef<ProjectedNode | null>(null);
+  const latestProjectedNodesRef = useRef<ProjectedNode[]>([]);
+
+  useEffect(() => {
+    onSelectTraitRef.current = onSelectTrait;
+  }, [onSelectTrait]);
+
+  useEffect(() => {
+    isShiftedLeftRef.current = isShiftedLeft;
+    if (!isShiftedLeft) {
+      hoveredNodeIdRef.current = null;
+      selectedNodeIdRef.current = null;
+      if (onSelectTraitRef.current) {
+        onSelectTraitRef.current(null);
+      }
+    }
+  }, [isShiftedLeft]);
+
+  useEffect(() => {
+    selectedNodeIdRef.current = selectedTrait ? selectedTrait.id : null;
+  }, [selectedTrait]);
 
   // Synchronize scroll progress without re-triggering heavy Canvas re-mounts
   useEffect(() => {
@@ -100,6 +133,10 @@ export function ConstellationCanvas({
       active: false,
     };
 
+    let currentMouseX = -1000;
+    let currentMouseY = -1000;
+    let currentRelX = 0.5;
+
     const onMouseMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
       mouse.x = e.clientX - rect.left;
@@ -113,10 +150,64 @@ export function ConstellationCanvas({
       mouse.active = false;
       mouse.relX = 0.5;
       mouse.relY = 0.5;
+      activeHoveredNodeRef.current = null;
+      if (hoveredNodeIdRef.current !== null) {
+        hoveredNodeIdRef.current = null;
+        if (canvas) canvas.style.cursor = 'default';
+      }
+    };
+
+    const onCanvasClick = (e: MouseEvent) => {
+      if (!isShiftedLeftRef.current) return;
+
+      // Ignore clicks on UI cards, buttons, drawers, or modal controls
+      if ((e.target as HTMLElement)?.closest('#genetic-trait-side-panel-container, button, a, [role="button"], input, .pointer-events-auto')) {
+        // If the click is strictly on the canvas itself, proceed, otherwise ignore
+        if (e.target !== canvas) {
+          return;
+        }
+      }
+
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      const candidates = latestProjectedNodesRef.current.filter((n) => {
+        const dx = clickX - n.projX;
+        const dy = clickY - n.projY;
+        const hitRadius = Math.max(n.radius * n.perspective + 24, 34);
+        return dx * dx + dy * dy <= hitRadius * hitRadius;
+      });
+
+      if (candidates.length > 0) {
+        candidates.sort((a, b) => b.depthT - a.depthT);
+        const chosen = candidates[0];
+
+        // If re-clicking the already selected node, toggle to unselect
+        if (selectedNodeIdRef.current === chosen.id) {
+          selectedNodeIdRef.current = null;
+          if (onSelectTraitRef.current) {
+            onSelectTraitRef.current(null);
+          }
+        } else {
+          const trait = getCornTrait(chosen.id);
+          selectedNodeIdRef.current = chosen.id;
+          if (onSelectTraitRef.current) {
+            onSelectTraitRef.current(trait);
+          }
+        }
+      } else {
+        // If clicking on empty canvas space, deselect
+        selectedNodeIdRef.current = null;
+        if (onSelectTraitRef.current) {
+          onSelectTraitRef.current(null);
+        }
+      }
     };
 
     window.addEventListener('mousemove', onMouseMove, { passive: true });
     window.addEventListener('mouseleave', onMouseLeave, { passive: true });
+    window.addEventListener('click', onCanvasClick);
 
     // 3D Helical Genomic Network Model
     // 2 interleaved spiral strands (Strand A: Gold/Amber, Strand B: Emerald/Teal)
@@ -233,10 +324,15 @@ export function ConstellationCanvas({
     }
 
     let time = 0;
+    let currentShiftFactor = 0;
 
     const render = () => {
       time += 0.015;
       ctx.clearRect(0, 0, width, height);
+
+      // Smoothly interpolate shift factor towards target (0 = normal, 1 = shifted left)
+      const targetShift = isShiftedLeftRef.current ? 1 : 0;
+      currentShiftFactor += (targetShift - currentShiftFactor) * 0.055;
 
       // 1. Draw atmospheric background particle matrix
       pointCloud.forEach((pt) => {
@@ -256,11 +352,30 @@ export function ConstellationCanvas({
         ctx.fill();
       });
 
+      // Update smoothed mouse interpolation for subtle, fluid response
+      if (mouse.active) {
+        if (currentMouseX === -1000) {
+          currentMouseX = mouse.x;
+          currentMouseY = mouse.y;
+          currentRelX = mouse.relX;
+        } else {
+          currentMouseX += (mouse.x - currentMouseX) * 0.08;
+          currentMouseY += (mouse.y - currentMouseY) * 0.08;
+          currentRelX += (mouse.relX - currentRelX) * 0.08;
+        }
+      }
+
       // 2. Compute 3D Spiral Coordinates driven by scroll progress
       const isMobile = width < 768;
       // Center of the helix spiral: positioned on the right half (0.57) on desktop, centered (0.50) on mobile
-      const mouseTiltX = mouse.active ? (mouse.relX - 0.5) * 35 : 0;
-      const axisX = width * (isMobile ? 0.50 : 0.57) + mouseTiltX;
+      // When shifted left for Library Exploration mode, shifts smoothly to the left (0.24 on desktop, 0.30 on mobile)
+      const baseCenter = isMobile ? 0.50 : 0.57;
+      const targetLeftCenter = isMobile ? 0.30 : 0.24;
+      const activeCenterRatio = baseCenter + (targetLeftCenter - baseCenter) * currentShiftFactor;
+
+      // Subtle mouse tilt: max ~6px displacement
+      const mouseTiltX = mouse.active ? (currentRelX - 0.5) * 6 : 0;
+      const axisX = width * activeCenterRatio + mouseTiltX;
       const maxHelixRadius = isMobile ? Math.min(width * 0.38, 135) : Math.min(width * 0.20, 185);
 
       // Spiral rotation angle: strictly rotates with scroll, with reduced spiral amount (no idle auto-rotation)
@@ -281,16 +396,18 @@ export function ConstellationCanvas({
         let z3d = Math.sin(nodeAngle) * r; // -r to +r (depth)
         let y3d = node.relY * height;
 
-        // Subtle breathing & mouse deflection
-        const breath = Math.sin(time * 1.2 + node.pulsePhase) * 2;
+        // Subtle breathing & gentle, subtle mouse deflection
+        const breath = Math.sin(time * 1.2 + node.pulsePhase) * 1.5;
         y3d += breath;
 
-        if (mouse.active) {
-          const dx = mouse.x - (axisX + x3d);
-          const dy = mouse.y - y3d;
+        if (mouse.active && currentMouseX !== -1000) {
+          const dx = currentMouseX - (axisX + x3d);
+          const dy = currentMouseY - y3d;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 130 && dist > 2) {
-            const pull = (1 - dist / 130) * 14;
+          if (dist < 70 && dist > 1) {
+            const factor = 1 - dist / 70;
+            // Smooth quadratic falloff with a max subtle displacement of ~2.5px
+            const pull = factor * factor * 2.5;
             x3d += (dx / dist) * pull;
             y3d += (dy / dist) * pull;
           }
@@ -312,15 +429,51 @@ export function ConstellationCanvas({
         };
       });
 
+      latestProjectedNodesRef.current = projectedNodes;
+
+      // Hit-test nodes when in Explore Library mode
+      let activeHoveredNode: ProjectedNode | null = null;
+      if (isShiftedLeftRef.current && mouse.active) {
+        const candidates = projectedNodes.filter((n) => {
+          const dx = mouse.x - n.projX;
+          const dy = mouse.y - n.projY;
+          const hitRadius = Math.max(n.radius * n.perspective + 20, 30);
+          return dx * dx + dy * dy <= hitRadius * hitRadius;
+        });
+
+        if (candidates.length > 0) {
+          // Prioritize closer foreground nodes (higher depthT)
+          candidates.sort((a, b) => b.depthT - a.depthT);
+          activeHoveredNode = candidates[0];
+        }
+      }
+
+      activeHoveredNodeRef.current = activeHoveredNode;
+
+      // Update cursor and hover tracking
+      const currentHoveredId = activeHoveredNode ? activeHoveredNode.id : null;
+      if (currentHoveredId !== hoveredNodeIdRef.current) {
+        hoveredNodeIdRef.current = currentHoveredId;
+        canvas.style.cursor = activeHoveredNode ? 'pointer' : 'default';
+      }
+
       // 3. Draw Connecting Lines (Dotted algorithmic links with 3D depth-modulated opacity)
       projectedNodes.forEach((node) => {
         node.connections.forEach((targetId) => {
           const target = projectedNodes.find((n) => n.id === targetId);
           if (!target) return;
 
+          const isConnectedToHoveredOrSelected =
+            (activeHoveredNode &&
+              (node.id === activeHoveredNode.id || target.id === activeHoveredNode.id)) ||
+            (selectedNodeIdRef.current !== null &&
+              (node.id === selectedNodeIdRef.current || target.id === selectedNodeIdRef.current));
+
           const avgDepthT = (node.depthT + target.depthT) * 0.5;
-          const lineAlpha = 0.22 + 0.65 * avgDepthT;
-          const lineWidth = (0.8 + 1.0 * avgDepthT) * Math.min(node.perspective, target.perspective);
+          const lineAlpha = isConnectedToHoveredOrSelected ? 0.95 : 0.22 + 0.65 * avgDepthT;
+          const lineWidth = isConnectedToHoveredOrSelected
+            ? 2.2 * Math.min(node.perspective, target.perspective)
+            : (0.8 + 1.0 * avgDepthT) * Math.min(node.perspective, target.perspective);
 
           ctx.save();
           const grad = ctx.createLinearGradient(
@@ -329,13 +482,25 @@ export function ConstellationCanvas({
             target.projX,
             target.projY
           );
-          grad.addColorStop(0, node.glowColor);
-          grad.addColorStop(1, target.glowColor);
+          if (isConnectedToHoveredOrSelected) {
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.5, '#34d399');
+            grad.addColorStop(1, '#6ee7b7');
+            ctx.shadowColor = '#34d399';
+            ctx.shadowBlur = 10;
+          } else {
+            grad.addColorStop(0, node.glowColor);
+            grad.addColorStop(1, target.glowColor);
+          }
 
           ctx.strokeStyle = grad;
           ctx.globalAlpha = lineAlpha;
           ctx.lineWidth = lineWidth;
-          ctx.setLineDash([3, 4]); // Dotted algorithmic line style
+          if (isConnectedToHoveredOrSelected) {
+            ctx.setLineDash([]); // Solid line for active connection
+          } else {
+            ctx.setLineDash([3, 4]); // Dotted algorithmic line style
+          }
           ctx.beginPath();
           ctx.moveTo(node.projX, node.projY);
           ctx.lineTo(target.projX, target.projY);
@@ -373,9 +538,15 @@ export function ConstellationCanvas({
       const sortedNodes = [...projectedNodes].sort((a, b) => a.z3d - b.z3d);
 
       sortedNodes.forEach((node) => {
-        const pulse = Math.sin(time * 2 + node.pulsePhase) * 0.15 + 0.85;
+        const isThisNodeHovered = activeHoveredNode && activeHoveredNode.id === node.id;
+        const isThisNodeSelected = selectedNodeIdRef.current === node.id;
+        const isThisNodeActive = isThisNodeHovered || isThisNodeSelected;
+
+        const pulse = isThisNodeActive
+          ? Math.sin(time * 6) * 0.25 + 1.2
+          : Math.sin(time * 2 + node.pulsePhase) * 0.15 + 0.85;
         const radius = node.radius * node.perspective * pulse;
-        const nodeAlpha = 0.45 + 0.55 * node.depthT;
+        const nodeAlpha = isThisNodeActive ? 1 : 0.45 + 0.55 * node.depthT;
 
         ctx.save();
         ctx.globalAlpha = nodeAlpha;
@@ -387,26 +558,119 @@ export function ConstellationCanvas({
           0,
           node.projX,
           node.projY,
-          radius * 2.8
+          radius * (isThisNodeActive ? 4.5 : 2.8)
         );
-        haloGrad.addColorStop(0, node.glowColor);
-        haloGrad.addColorStop(0.5, node.glowColor.replace(/[\d\.]+\)$/, '0.2)'));
+        haloGrad.addColorStop(0, isThisNodeActive ? '#ffffff' : node.glowColor);
+        haloGrad.addColorStop(0.4, isThisNodeActive ? '#34d399' : node.glowColor.replace(/[\d\.]+\)$/, '0.3)'));
         haloGrad.addColorStop(1, 'rgba(0,0,0,0)');
 
         ctx.fillStyle = haloGrad;
         ctx.beginPath();
-        ctx.arc(node.projX, node.projY, radius * 2.8, 0, Math.PI * 2);
+        ctx.arc(node.projX, node.projY, radius * (isThisNodeActive ? 4.5 : 2.8), 0, Math.PI * 2);
         ctx.fill();
 
         // Node core circle
-        ctx.fillStyle = node.color;
+        ctx.fillStyle = isThisNodeActive ? '#ffffff' : node.color;
         ctx.beginPath();
         ctx.arc(node.projX, node.projY, radius, 0, Math.PI * 2);
         ctx.fill();
 
+        // If node has content/tooltip attached, draw an interactive marker ring
+        const trait = getCornTrait(node.id);
+        const hasContent = Boolean(trait);
+
+        if (hasContent && !isThisNodeActive) {
+          const markerRadius = radius * (isShiftedLeftRef.current ? 1.95 : 1.75);
+          const beaconPulse = Math.sin(time * 2.5 + node.pulsePhase) * 0.15 + 0.85;
+          const markerAlpha = (isShiftedLeftRef.current ? 0.65 : 0.38) * (0.4 + 0.6 * node.depthT) * beaconPulse;
+
+          ctx.save();
+          ctx.globalAlpha = markerAlpha;
+          ctx.strokeStyle = node.color;
+          ctx.lineWidth = Math.max(1.0 * node.perspective, 0.8);
+          ctx.shadowColor = node.glowColor;
+          ctx.shadowBlur = 6 * node.perspective;
+
+          // 1. Concentric thin dashed interactive marker ring
+          ctx.setLineDash([2.5, 3.5]);
+          ctx.beginPath();
+          ctx.arc(node.projX, node.projY, markerRadius, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // 2. Orbital micro-satellite pip / marker dot indicating clickable data
+          const orbAngle = time * 1.2 + node.pulsePhase * 2;
+          const satX = node.projX + Math.cos(orbAngle) * markerRadius;
+          const satY = node.projY + Math.sin(orbAngle) * markerRadius;
+
+          ctx.fillStyle = '#ffffff';
+          ctx.shadowColor = '#ffffff';
+          ctx.shadowBlur = 5;
+          ctx.beginPath();
+          ctx.arc(satX, satY, Math.max(1.5 * node.perspective, 1.2), 0, Math.PI * 2);
+          ctx.fill();
+
+          // 3. Subtle cardinal notch ticks for precision look in explore mode
+          if (isShiftedLeftRef.current) {
+            ctx.setLineDash([]);
+            const tickDist = markerRadius + 2.5;
+            const tickSize = 2.5 * node.perspective;
+            const cardinalAngles = [0, Math.PI * 0.5, Math.PI, Math.PI * 1.5];
+
+            cardinalAngles.forEach((ang) => {
+              const cosA = Math.cos(ang);
+              const sinA = Math.sin(ang);
+              ctx.beginPath();
+              ctx.moveTo(node.projX + cosA * (tickDist - tickSize), node.projY + sinA * (tickDist - tickSize));
+              ctx.lineTo(node.projX + cosA * (tickDist + tickSize), node.projY + sinA * (tickDist + tickSize));
+              ctx.stroke();
+            });
+          }
+
+          ctx.restore();
+        }
+
+        // If active (hovered or selected), draw precision targeting reticle crosshair around node
+        if (isThisNodeActive) {
+          const reticleRadius = radius * 2.6;
+          ctx.save();
+          ctx.strokeStyle = isThisNodeSelected ? '#a7f3d0' : '#34d399';
+          ctx.lineWidth = isThisNodeSelected ? 2.0 : 1.5;
+          ctx.shadowColor = '#34d399';
+          ctx.shadowBlur = isThisNodeSelected ? 16 : 12;
+
+          // Rotating outer ring with 4 arc segments
+          const rot = time * 2;
+          for (let i = 0; i < 4; i++) {
+            const startAng = rot + (i * Math.PI) / 2 + 0.2;
+            const endAng = rot + ((i + 1) * Math.PI) / 2 - 0.2;
+            ctx.beginPath();
+            ctx.arc(node.projX, node.projY, reticleRadius, startAng, endAng);
+            ctx.stroke();
+          }
+
+          // Corner tick marks
+          const tickLen = isThisNodeSelected ? 8 : 6;
+          const offsets = [
+            [-reticleRadius - 4, 0, -reticleRadius - 4 - tickLen, 0],
+            [reticleRadius + 4, 0, reticleRadius + 4 + tickLen, 0],
+            [0, -reticleRadius - 4, 0, -reticleRadius - 4 - tickLen],
+            [0, reticleRadius + 4, 0, reticleRadius + 4 + tickLen],
+          ];
+          offsets.forEach(([x1, y1, x2, y2]) => {
+            ctx.beginPath();
+            ctx.moveTo(node.projX + x1, node.projY + y1);
+            ctx.lineTo(node.projX + x2, node.projY + y2);
+            ctx.stroke();
+          });
+
+          ctx.restore();
+        }
+
         // Specular glint for nodes facing forward (depthT > 0.4)
-        if (node.depthT > 0.4) {
-          ctx.fillStyle = `rgba(255, 255, 255, ${0.4 + 0.5 * node.depthT})`;
+        if (node.depthT > 0.4 || isThisNodeActive) {
+          ctx.fillStyle = isThisNodeActive
+            ? 'rgba(255, 255, 255, 0.95)'
+            : `rgba(255, 255, 255, ${0.4 + 0.5 * node.depthT})`;
           ctx.beginPath();
           ctx.arc(
             node.projX - radius * 0.25,
@@ -431,14 +695,42 @@ export function ConstellationCanvas({
       window.removeEventListener('resize', resize);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseleave', onMouseLeave);
+      window.removeEventListener('click', onCanvasClick);
     };
   }, [activeSlide]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      id="algorithm-constellation-canvas"
-      className={`absolute inset-0 w-full h-full pointer-events-auto ${className}`}
-    />
+    <>
+      <canvas
+        ref={canvasRef}
+        id="algorithm-constellation-canvas"
+        className={`absolute inset-0 w-full h-full pointer-events-auto ${className}`}
+      />
+
+      {/* Floating HUD Guidance in Explore Library Mode */}
+      <AnimatePresence>
+        {isShiftedLeft && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ delay: 0.35, duration: 0.45 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none flex items-center gap-2.5 px-4 py-2 rounded-full bg-slate-950/80 border border-emerald-500/30 backdrop-blur-md shadow-[0_12px_32px_rgba(0,0,0,0.7)] text-slate-300 text-xs"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+            <span className="font-mono text-emerald-400 font-semibold uppercase tracking-wider text-[11px]">
+              Explore Mode
+            </span>
+            <span className="text-slate-600">|</span>
+            <span className="text-slate-300">
+              Hover over nodes to illuminate pathways • Click a node to view corn trait card
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

@@ -5,6 +5,7 @@ import { PioneerLogo } from './PioneerLogo';
 import { ParticleField } from './ParticleField';
 import { NavDrawer } from './NavDrawer';
 import { CookieModal } from './CookieModal';
+import { LiquidPullText } from './LiquidPullText';
 
 interface HeroSectionProps {
   onExploreNext?: () => void;
@@ -224,10 +225,10 @@ export function HeroSection({ onExploreNext }: HeroSectionProps = {}) {
       {/* Top Header Bar */}
       <motion.header
         id="hero-header"
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.1, ease: 'easeOut' }}
-        className="relative z-30 w-full px-6 sm:px-10 lg:px-12 py-6 md:py-8 flex items-center pointer-events-auto"
+        transition={{ duration: 2.2, delay: 1.3, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-30 w-full px-6 sm:px-10 lg:px-12 py-6 md:py-8 flex items-center pointer-events-auto will-change-[opacity,transform]"
       >
         <div className="flex items-center gap-6 sm:gap-8">
           {/* Hamburger Menu Toggle */}
@@ -265,36 +266,43 @@ export function HeroSection({ onExploreNext }: HeroSectionProps = {}) {
           {/* Massive Bold Headline with Softened Shadow */}
           <motion.h1
             id="hero-title"
-            initial={{ opacity: 0, y: 28, filter: 'blur(3px)' }}
+            initial={{ opacity: 0, y: 24, filter: 'blur(30px)', scale: 0.98 }}
             animate={
               isContentInView
-                ? { opacity: 1, y: 0, filter: 'blur(0px)' }
-                : { opacity: 0, y: 28, filter: 'blur(3px)' }
+                ? { opacity: 1, y: 0, filter: 'blur(0px)', scale: 1 }
+                : { opacity: 0, y: 24, filter: 'blur(30px)', scale: 0.98 }
             }
             transition={{
-              duration: 1.1,
+              duration: 2.8,
+              delay: 0.3,
               ease: [0.16, 1, 0.3, 1],
             }}
-            className="font-display font-black text-5xl sm:text-7xl md:text-8xl lg:text-[7.5rem] xl:text-[9.5rem] tracking-tight uppercase text-white leading-[0.9] drop-shadow-[0_10px_35px_rgba(0,0,0,0.85)]"
+            className="font-display font-black text-5xl sm:text-7xl md:text-8xl lg:text-[7.5rem] xl:text-[9.5rem] tracking-tight uppercase text-white leading-[0.9] drop-shadow-[0_10px_35px_rgba(0,0,0,0.85)] will-change-[filter,opacity,transform]"
           >
-            CALISTHENICS. REVOLUTIONIZED.
+            <LiquidPullText
+              text="CALISTHENICS. REVOLUTIONIZED."
+              maxPull={1}
+              maxBlur={5}
+              radius={120}
+              lerpFactor={0.12}
+            />
           </motion.h1>
 
           {/* Subtitle with Refined Subtle Tone */}
           <motion.p
             id="hero-subtitle"
-            initial={{ opacity: 0, y: 16, filter: 'blur(2px)' }}
+            initial={{ opacity: 0, y: 18, filter: 'blur(20px)' }}
             animate={
               isContentInView
                 ? { opacity: 1, y: 0, filter: 'blur(0px)' }
-                : { opacity: 0, y: 16, filter: 'blur(2px)' }
+                : { opacity: 0, y: 18, filter: 'blur(20px)' }
             }
             transition={{
-              duration: 0.9,
-              delay: 0.18,
+              duration: 2.4,
+              delay: 0.9,
               ease: [0.16, 1, 0.3, 1],
             }}
-            className="mt-4 sm:mt-6 md:mt-7 text-sm sm:text-base md:text-lg lg:text-xl font-normal text-zinc-100/85 tracking-wide max-w-2xl mx-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] px-4"
+            className="mt-4 sm:mt-6 md:mt-7 text-sm sm:text-base md:text-lg lg:text-xl font-normal text-zinc-100/85 tracking-wide max-w-2xl mx-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] px-4 will-change-[filter,opacity,transform]"
           >
             From lab to field, it's corn seed development that will change farming.
           </motion.p>

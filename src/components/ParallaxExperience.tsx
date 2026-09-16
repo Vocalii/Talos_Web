@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, TouchEvent } from 'react';
 import { motion, useMotionValue, useSpring, useTransform, useScroll, AnimatePresence } from 'motion/react';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown, Check, X } from 'lucide-react';
 import { PioneerLogo } from './PioneerLogo';
 import { ParticleField } from './ParticleField';
 import { ConstellationCanvas } from './ConstellationCanvas';
@@ -9,6 +9,11 @@ import { PlaceholderSection } from './PlaceholderSection';
 import { HorizontalTextScrollSection } from './HorizontalTextScrollSection';
 import { ProductsAtmosphereBackground } from './ProductsAtmosphereBackground';
 import { PlaceholderSection2 } from './PlaceholderSection2';
+import { LiquidPullText } from './LiquidPullText';
+import { ExploreLibraryButton } from './ExploreLibraryButton';
+import { GeneticLibraryModal } from './GeneticLibraryModal';
+import { GeneticTraitSidePanel } from './GeneticTraitTooltip';
+import { CornSeedTrait } from '../data/cornTraits';
 
 interface SlideData {
   headline: string[];
@@ -69,25 +74,47 @@ const sectionContentVariants = {
 };
 
 const headlineLineVariants = {
-  hidden: { opacity: 0, y: 22 },
+  hidden: { opacity: 0, y: 24, filter: 'blur(30px)', scale: 0.98 },
   visible: {
     opacity: 1,
     y: 0,
+    filter: 'blur(0px)',
+    scale: 1,
     transition: {
-      duration: 0.6,
+      duration: 2.4,
       ease: [0.16, 1, 0.3, 1],
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -12,
+    filter: 'blur(12px)',
+    transition: {
+      duration: 0.35,
+      ease: [0.4, 0, 0.2, 1],
     },
   },
 };
 
 const paragraphVariants = {
-  hidden: { opacity: 0, y: 18 },
+  hidden: { opacity: 0, y: 18, filter: 'blur(20px)' },
   visible: {
     opacity: 1,
     y: 0,
+    filter: 'blur(0px)',
     transition: {
-      duration: 0.65,
+      duration: 2.2,
+      delay: 0.35,
       ease: [0.16, 1, 0.3, 1],
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -8,
+    filter: 'blur(8px)',
+    transition: {
+      duration: 0.3,
+      ease: [0.4, 0, 0.2, 1],
     },
   },
 };
@@ -97,21 +124,30 @@ const featureListContainerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.09,
-      delayChildren: 0.05,
+      staggerChildren: 0.16,
+      delayChildren: 0.6,
     },
   },
 };
 
 const featureItemVariants = {
-  hidden: { opacity: 0, x: -16, y: 8 },
+  hidden: { opacity: 0, x: -14, y: 8, filter: 'blur(16px)' },
   visible: {
     opacity: 1,
     x: 0,
     y: 0,
+    filter: 'blur(0px)',
     transition: {
-      duration: 0.5,
+      duration: 1.8,
       ease: [0.16, 1, 0.3, 1],
+    },
+  },
+  exit: {
+    opacity: 0,
+    filter: 'blur(6px)',
+    transition: {
+      duration: 0.25,
+      ease: [0.4, 0, 0.2, 1],
     },
   },
 };
@@ -126,43 +162,84 @@ const featureItemVariants = {
 // area needed several rounds of "a bit more/less space here" corrections.
 // Adjusting the pacing going forward should only ever mean changing one of
 // these numbers, with no other formula to recompute by hand.
-const QROME_REVEALED_VH = 480; // 240 Hero + 240 Contenders — Qrome fully in view
-const QROME_EXIT_VH = 40; // Qrome content slides up + fades out
-const GAP_1_VH = 30; // pure background, breathing room
-const INSIGHTS_ENTER_VH = 40; // Insights content slides up + fades in
-const CAROUSEL_VH = 300; // horizontal carousel scroll-through, 5 slides
-const GAP_2_VH = 40; // breathing room after the carousel ends
+const HERO_VH = 240;
+const CONTENDERS_VH = 240; // Contenders revealed & Cut 2 transition to Qrome + immediate continuous handoff into Insights
+const CAROUSEL_VH = 340; // horizontal carousel scroll-through, 5 slides
+const GAP_2_VH = 45; // breathing room after the carousel ends
 const CUT3_VH = 240; // diagonal wipe into Section 4 — same width as Cut 1 / Cut 2
 
 const TRACK_VH =
-  QROME_REVEALED_VH +
-  QROME_EXIT_VH +
-  GAP_1_VH +
-  INSIGHTS_ENTER_VH +
+  HERO_VH +
+  CONTENDERS_VH +
   CAROUSEL_VH +
   GAP_2_VH +
   CUT3_VH;
 
-const K1 = 240 / TRACK_VH;
-const K2 = QROME_REVEALED_VH / TRACK_VH;
-const QROME_EXIT_START = K2;
-const QROME_EXIT_END = (QROME_REVEALED_VH + QROME_EXIT_VH) / TRACK_VH;
-const GAP1_END = (QROME_REVEALED_VH + QROME_EXIT_VH + GAP_1_VH) / TRACK_VH;
-const INSIGHTS_ENTER_END =
-  (QROME_REVEALED_VH + QROME_EXIT_VH + GAP_1_VH + INSIGHTS_ENTER_VH) / TRACK_VH;
-const CAROUSEL_END =
-  (QROME_REVEALED_VH + QROME_EXIT_VH + GAP_1_VH + INSIGHTS_ENTER_VH + CAROUSEL_VH) / TRACK_VH;
+const K1 = HERO_VH / TRACK_VH;
+const K2 = (HERO_VH + CONTENDERS_VH) / TRACK_VH;
+// Seamless, continuous handoff: as Cut 2 reveals Qrome at 0.58, it immediately
+// flows continuously with the scroll into Agronomic Insights without pausing or sticking
+const HANDOFF_START = K1 + 0.58 * (K2 - K1);
+const HANDOFF_END = K2;
+const CAROUSEL_START = K2;
+const CAROUSEL_END = (HERO_VH + CONTENDERS_VH + CAROUSEL_VH) / TRACK_VH;
 const CUT3_START =
-  (QROME_REVEALED_VH + QROME_EXIT_VH + GAP_1_VH + INSIGHTS_ENTER_VH + CAROUSEL_VH + GAP_2_VH) /
+  (HERO_VH + CONTENDERS_VH + CAROUSEL_VH + GAP_2_VH) /
   TRACK_VH;
 const K3 = 1.0;
 
 export function ParallaxExperience() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isNavOpen, setIsNavOpen] = useState(false);
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
+  const [isExploreActive, setIsExploreActive] = useState(false);
+  const [selectedGeneticTrait, setSelectedGeneticTrait] = useState<CornSeedTrait | null>(null);
+  const currentSlide = 0;
+  const [isHeroRevealed, setIsHeroRevealed] = useState(true);
   const [isSectionRevealed, setIsSectionRevealed] = useState(false);
+  const [isSectionThreeRevealed, setIsSectionThreeRevealed] = useState(false);
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+
+  // Lock vertical scrolling completely while explore mode is active
+  // without modifying body overflow so the page scroll position is never reset
+  useEffect(() => {
+    if (!isExploreActive) {
+      setSelectedGeneticTrait(null);
+      return;
+    }
+
+    const preventScrollWheel = (e: WheelEvent) => {
+      e.preventDefault();
+    };
+
+    const preventScrollTouch = (e: globalThis.TouchEvent) => {
+      e.preventDefault();
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (selectedGeneticTrait) {
+          setSelectedGeneticTrait(null);
+        } else {
+          setIsExploreActive(false);
+        }
+        return;
+      }
+      if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(e.key)) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener('wheel', preventScrollWheel, { passive: false });
+    window.addEventListener('touchmove', preventScrollTouch, { passive: false });
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('wheel', preventScrollWheel);
+      window.removeEventListener('touchmove', preventScrollTouch);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isExploreActive, selectedGeneticTrait]);
 
   // Scroll tracking across the scroll track
   const { scrollYProgress } = useScroll({
@@ -193,9 +270,9 @@ export function ParallaxExperience() {
     const unsubscribe = smoothProgress.on('change', (p) => {
       if (p < K1) {
         setActiveSectionIndex(0);
-      } else if (p < K2) {
+      } else if (p < HANDOFF_START) {
         setActiveSectionIndex(1);
-      } else if (p < QROME_EXIT_START) {
+      } else if (p < CUT3_START) {
         setActiveSectionIndex(2);
       } else {
         setActiveSectionIndex(3);
@@ -204,13 +281,35 @@ export function ParallaxExperience() {
     return () => unsubscribe();
   }, [smoothProgress]);
 
-  // Trigger entrance animation for Section 2 elements as diagonal transition completes
+  // Trigger entrance animations for Hero, Section 2 (Contenders), and Section 3 (Qrome Products)
+  // Both when scrolling down into each section AND when scrolling back up into each section
   useEffect(() => {
     const checkRevealed = (val: number) => {
-      if (val >= 0.54 * K1) {
+      // 1. Hero (Section 1)
+      if (val < 0.38 * K1) {
+        setIsHeroRevealed(true);
+      } else if (val >= 0.46 * K1) {
+        setIsHeroRevealed(false);
+      }
+
+      // 2. Contenders (Section 2)
+      if (val >= 0.52 * K1 && val < K1 + 0.46 * (K2 - K1)) {
         setIsSectionRevealed(true);
-      } else if (val < 0.44 * K1) {
+      } else if (val < 0.44 * K1 || val >= K1 + 0.52 * (K2 - K1)) {
         setIsSectionRevealed(false);
+      }
+
+      // 3. Qrome Products (Section 3)
+      if (
+        val >= K1 + 0.48 * (K2 - K1) &&
+        val < HANDOFF_START + 0.15 * (HANDOFF_END - HANDOFF_START)
+      ) {
+        setIsSectionThreeRevealed(true);
+      } else if (
+        val < K1 + 0.40 * (K2 - K1) ||
+        val >= HANDOFF_START + 0.25 * (HANDOFF_END - HANDOFF_START)
+      ) {
+        setIsSectionThreeRevealed(false);
       }
     };
     checkRevealed(diagonalCutSpring.get());
@@ -225,20 +324,21 @@ export function ParallaxExperience() {
   const smoothMouseX = useSpring(mouseX, springConfig);
   const smoothMouseY = useSpring(mouseY, springConfig);
 
-  // 3D Tilt angles for Hero stage
+  // 3D Tilt angles for Hero stage background assets
   const heroRotateX = useTransform(smoothMouseY, [-1, 1], [3.5, -3.5]);
   const heroRotateY = useTransform(smoothMouseX, [-1, 1], [-4.5, 4.5]);
 
   // Deep Background Layer Parallax (Hero mouse displacement)
-  const heroMouseBgX = useTransform(smoothMouseX, [-1, 1], [14, -14]);
-  const heroMouseBgY = useTransform(smoothMouseY, [-1, 1], [10, -10]);
+  const heroMouseBgX = useTransform(smoothMouseX, [-1, 1], [20, -20]);
+  const heroMouseBgY = useTransform(smoothMouseY, [-1, 1], [14, -14]);
 
-  // Hero Foreground Text Parallax (Hero mouse displacement)
-  const heroMouseTextY = useTransform(smoothMouseY, [-1, 1], [-6, 6]);
+  // Midground Particle Field Parallax (Intermediate floating drift)
+  const heroMouseParticlesX = useTransform(smoothMouseX, [-1, 1], [-12, 12]);
+  const heroMouseParticlesY = useTransform(smoothMouseY, [-1, 1], [-8, 8]);
 
   // Dynamic light reflection hotspot for Hero
-  const lightX = useTransform(smoothMouseX, [-1, 1], ['36%', '64%']);
-  const lightY = useTransform(smoothMouseY, [-1, 1], ['36%', '64%']);
+  const lightX = useTransform(smoothMouseX, [-1, 1], ['28%', '72%']);
+  const lightY = useTransform(smoothMouseY, [-1, 1], ['28%', '72%']);
 
   // =========================================================================
   // WEIGHTED DIAGONAL CUT-IN TRANSITION GEOMETRY (TRANSITION 1: HERO -> CONTENDERS)
@@ -318,14 +418,14 @@ export function ParallaxExperience() {
   const heroIndicatorOpacity = useTransform(smoothProgress, [0, 0.10 * K1], [1, 0]);
   const heroIndicatorY = useTransform(smoothProgress, [0, 0.10 * K1], [0, 20]);
 
-  // Combined vertical offsets for Hero elements
+  // Combined vertical offsets for Hero background and particle elements
   const combinedHeroBgY = useTransform(
     [heroMouseBgY, heroScrollBgY],
     ([my, sy]) => `calc(${my}px + ${sy})`
   );
 
-  const combinedHeroTextY = useTransform(
-    [heroMouseTextY, heroScrollTextY],
+  const combinedHeroParticlesY = useTransform(
+    [heroMouseParticlesY, heroParticlesY],
     ([my, sy]) => `calc(${my}px + ${sy})`
   );
 
@@ -371,22 +471,50 @@ export function ParallaxExperience() {
 
   // =========================================================================
   // SCROLL-TRIGGERED REVEAL TRANSFORMS FOR FLOATING STORY NAVIGATION DOTS
+  // (Hidden in Hero & gracefully exits as user enters Section 4 Download App)
   // =========================================================================
-  const navDotsOpacity = useTransform(smoothProgress, [0.15 * K1, 0.42 * K1], [0, 1]);
-  const navDotsX = useTransform(smoothProgress, [0.15 * K1, 0.42 * K1], [40, 0]);
-  const navDotsPointerEvents = useTransform(smoothProgress, (p) => (p > 0.15 * K1 ? 'auto' : 'none'));
+  const navDotsOpacity = useTransform(
+    smoothProgress,
+    [
+      0.15 * K1,
+      0.42 * K1,
+      CUT3_START + 0.15 * (K3 - CUT3_START),
+      CUT3_START + 0.42 * (K3 - CUT3_START),
+    ],
+    [0, 1, 1, 0]
+  );
+  const navDotsX = useTransform(
+    smoothProgress,
+    [
+      0.15 * K1,
+      0.42 * K1,
+      CUT3_START + 0.15 * (K3 - CUT3_START),
+      CUT3_START + 0.42 * (K3 - CUT3_START),
+    ],
+    [40, 0, 0, 40]
+  );
+  const navDotsPointerEvents = useTransform(smoothProgress, (p) =>
+    p > 0.15 * K1 && p < CUT3_START + 0.42 * (K3 - CUT3_START) ? 'auto' : 'none'
+  );
 
   // =========================================================================
   // SECTION 3 (PLACEHOLDER / QROME) PARALLAX DISPLACEMENTS INSIDE CUT 2
   // =========================================================================
+  // Dedicated 0 -> 1 normalized entry progress for Section 3 (Qrome Products)
+  // Reaches full center right at HANDOFF_START as Cut 2 clears
+  const sectionThreeEntryProgress = useTransform(
+    smoothProgress,
+    [K1 + 0.35 * (K2 - K1), HANDOFF_START],
+    [0, 1]
+  );
   const placeholderTextY = useTransform(
     smoothProgress,
-    [K1 + 0.46 * (K2 - K1), K1 + 0.58 * (K2 - K1)],
+    [K1 + 0.35 * (K2 - K1), HANDOFF_START],
     ['20%', '0%']
   );
   const placeholderTextOpacity = useTransform(
     smoothProgress,
-    [K1 + 0.46 * (K2 - K1), K1 + 0.56 * (K2 - K1)],
+    [K1 + 0.35 * (K2 - K1), K1 + 0.48 * (K2 - K1)],
     [0, 1]
   );
 
@@ -427,39 +555,70 @@ export function ParallaxExperience() {
   // Active interaction triggers
   const heroPointerEvents = useTransform(smoothProgress, (p) => (p < 0.46 * K1 ? 'auto' : 'none'));
   const contendersPointerEvents = useTransform(smoothProgress, (p) =>
-    p >= 0.52 * K1 && p < K1 + 0.46 * (K2 - K1) ? 'auto' : 'none'
+    p >= 0.52 * K1 && p < K1 + 0.50 * (K2 - K1) ? 'auto' : 'none'
   );
-  // Section 3 (Qrome Products) is interactive from its own reveal until it
-  // starts exiting (QROME_EXIT_START) — Insights and Section 4 have their own
-  // separate pointer-events gates below, covering the rest of the timeline.
+  // Section 3 (Qrome Products + Insights) clipped container remains interactive until Section 4 wipe
   const sectionThreePointerEvents = useTransform(smoothProgress, (p) =>
-    p >= K1 + 0.46 * (K2 - K1) && p < QROME_EXIT_START ? 'auto' : 'none'
+    p >= K1 + 0.35 * (K2 - K1) && p < CUT3_START ? 'auto' : 'none'
   );
 
-  // Continuing to scroll within Section 3 first slides + fades the static
-  // Qrome placeholder content up and off-screen, then — after GAP_1_VH of
-  // pure background — the horizontal-scroll Agronomic Insights content
-  // slides + fades up into place from below. Driven off raw scrollYProgress
-  // (not the damped smoothProgress spring) so it triggers the instant the
-  // user scrolls, with no spring catch-up delay.
-  // The translate finishes faster than the fade (over the first half of the
-  // exit window) so the content is already most of the way off-screen before
-  // it's noticeably faded, instead of fading and moving at the same rate.
+  // Section 3 (Qrome Products) always scrolls naturally with the screen:
+  // - Enters by rising into view from 24% as Cut 2 sweeps across
+  // - Settles into centered view
+  // - Without pausing, scrolls continuously upward off the screen into Insights (0% -> -100%)
+  const sectionThreeExitProgress = useTransform(
+    smoothProgress,
+    [HANDOFF_START, HANDOFF_END],
+    [0, 1]
+  );
   const placeholderContentY = useTransform(
-    scrollYProgress,
-    [QROME_EXIT_START, QROME_EXIT_START + 0.5 * (QROME_EXIT_END - QROME_EXIT_START)],
-    ['0%', '-100%']
+    smoothProgress,
+    [K1 + 0.35 * (K2 - K1), HANDOFF_START, HANDOFF_END],
+    ['24%', '0%', '-100%']
   );
-  const placeholderContentOpacity = useTransform(scrollYProgress, [QROME_EXIT_START, QROME_EXIT_END], [1, 0]);
-  const placeholderContentPointerEvents = useTransform(scrollYProgress, (p) =>
-    p < QROME_EXIT_START + 0.5 * (QROME_EXIT_END - QROME_EXIT_START) ? 'auto' : 'none'
+  const placeholderContentOpacity = useTransform(
+    smoothProgress,
+    [
+      K1 + 0.35 * (K2 - K1),
+      K1 + 0.48 * (K2 - K1),
+      HANDOFF_START + 0.12 * (HANDOFF_END - HANDOFF_START),
+      HANDOFF_END,
+    ],
+    [0, 1, 1, 0]
   );
-  // Gap: Qrome has fully exited, Insights hasn't entered yet, so only the
-  // persistent shared background shows while scrolling through GAP_1_VH.
-  const insightsContentY = useTransform(scrollYProgress, [GAP1_END, INSIGHTS_ENTER_END], ['100%', '0%']);
-  const insightsContentOpacity = useTransform(scrollYProgress, [GAP1_END, INSIGHTS_ENTER_END], [0, 1]);
-  const insightsContentPointerEvents = useTransform(scrollYProgress, (p) =>
-    p >= GAP1_END + 0.5 * (INSIGHTS_ENTER_END - GAP1_END) && p < CUT3_START ? 'auto' : 'none'
+  const placeholderContentPointerEvents = useTransform(smoothProgress, (p) =>
+    p >= K1 + 0.35 * (K2 - K1) && p < HANDOFF_START + 0.45 * (HANDOFF_END - HANDOFF_START) ? 'auto' : 'none'
+  );
+
+  // Agronomic Insights scrolls directly into place from below simultaneously (100% -> 0%)
+  const insightsEntryProgress = useTransform(
+    smoothProgress,
+    [HANDOFF_START, HANDOFF_END],
+    [0, 1]
+  );
+  const insightsExitProgress = useTransform(
+    smoothProgress,
+    [CAROUSEL_END, CUT3_START],
+    [0, 1]
+  );
+
+  const insightsContentY = useTransform(
+    smoothProgress,
+    [HANDOFF_START, HANDOFF_END, CAROUSEL_END, CUT3_START],
+    ['100%', '0%', '0%', '-36px']
+  );
+  const insightsContentOpacity = useTransform(
+    smoothProgress,
+    [HANDOFF_START, HANDOFF_START + 0.45 * (HANDOFF_END - HANDOFF_START), CAROUSEL_END, CUT3_START],
+    [0, 1, 1, 0]
+  );
+  const insightsContentScale = useTransform(
+    smoothProgress,
+    [HANDOFF_START, HANDOFF_END, CAROUSEL_END, CUT3_START],
+    [0.94, 1.0, 1.0, 0.96]
+  );
+  const insightsContentPointerEvents = useTransform(smoothProgress, (p) =>
+    p >= HANDOFF_START + 0.45 * (HANDOFF_END - HANDOFF_START) && p < CUT3_START ? 'auto' : 'none'
   );
 
   // =========================================================================
@@ -481,7 +640,7 @@ export function ParallaxExperience() {
     p >= CUT3_START + 0.46 * (K3 - CUT3_START) ? 'auto' : 'none'
   );
 
-  // Track cursor movement across viewport for Hero 3D tilt
+  // Track cursor movement and touch gestures across viewport for Hero 3D tilt & parallax depth
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       const width = window.innerWidth;
@@ -497,12 +656,33 @@ export function ParallaxExperience() {
       mouseY.set(0);
     };
 
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const normalizedX = (touch.clientX / width) * 2 - 1;
+        const normalizedY = (touch.clientY / height) * 2 - 1;
+        mouseX.set(normalizedX);
+        mouseY.set(normalizedY);
+      }
+    };
+
+    const handleTouchEnd = () => {
+      mouseX.set(0);
+      mouseY.set(0);
+    };
+
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
     window.addEventListener('mouseleave', handleMouseLeave, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseleave', handleMouseLeave);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
     };
   }, [mouseX, mouseY]);
 
@@ -550,12 +730,117 @@ export function ParallaxExperience() {
     { id: 'revolution', label: 'Revolution', number: '01' },
     { id: 'simulations', label: 'Computers & Simulations', number: '02' },
     { id: 'products', label: 'Qrome® Products', number: '03' },
-    { id: 'placeholder2', label: 'More To Come', number: '04' },
+    { id: 'placeholder2', label: 'Download App', number: '04' },
   ];
 
-  // Smooth scroll helper: return to Hero (Section 1)
+  const scrollAnimRef = useRef<number | null>(null);
+
+  // Clean up any ongoing scroll animation on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollAnimRef.current) {
+        cancelAnimationFrame(scrollAnimRef.current);
+        scrollAnimRef.current = null;
+      }
+    };
+  }, []);
+
+  /**
+   * Continuous smooth scroll animator.
+   * Uses a quadratic ease-in-out curve with a brisk, continuous ~1.4s to 2.1s duration
+   * to ensure continuous, uninterrupted motion across sections without lingering or pausing.
+   */
+  const smoothScrollTo = (targetY: number, customDuration?: number) => {
+    const startY = window.scrollY || window.pageYOffset;
+    const distance = Math.abs(targetY - startY);
+    if (distance <= 4) {
+      window.scrollTo({ top: targetY });
+      return;
+    }
+
+    if (scrollAnimRef.current) {
+      cancelAnimationFrame(scrollAnimRef.current);
+      scrollAnimRef.current = null;
+    }
+
+    const isHero = targetY === 0;
+    const viewportH = typeof window !== 'undefined' ? (window.innerHeight || 800) : 800;
+    const screenCount = Math.max(1, distance / viewportH);
+
+    // Continuous, unhurried glide back to top:
+    // Distance-adaptive duration ensuring that when low on the screen (deep sections 3 & 4, ~10-13 screens down),
+    // the scroll doesn't rush past at excessive speeds, while keeping intermediate sections fluid
+    // without stalling or lingering:
+    // - 1-2 screens: ~1.4s - 1.6s
+    // - 4-5 screens: ~2.1s - 2.4s
+    // - 8-9 screens: ~3.1s - 3.4s
+    // - 11-13 screens (very low): ~3.8s - 4.2s
+    const duration =
+      customDuration ??
+      (isHero
+        ? Math.min(4200, Math.max(1350, 1100 + screenCount * 250))
+        : Math.min(2000, Math.max(1000, 900 + screenCount * 120)));
+
+    const startTime = performance.now();
+
+    // Continuous quadratic ease-in-out curve:
+    // Maintains steady, uninterrupted momentum through intermediate sections,
+    // avoiding dead zones or plateaus that feel like stopping for a second.
+    const easeInOutQuad = (t: number) =>
+      t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+    const abort = () => {
+      if (scrollAnimRef.current) {
+        cancelAnimationFrame(scrollAnimRef.current);
+        scrollAnimRef.current = null;
+      }
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('touchstart', onTouchStart);
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      // Guard against residual trackpad momentum during the first 300ms
+      const elapsed = performance.now() - startTime;
+      if (elapsed < 300 && Math.abs(e.deltaY) < 16) {
+        return;
+      }
+      abort();
+    };
+
+    const onTouchStart = () => {
+      const elapsed = performance.now() - startTime;
+      if (elapsed > 200) {
+        abort();
+      }
+    };
+
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+
+    const step = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      const eased = easeInOutQuad(progress);
+      const currentPos = startY + (targetY - startY) * eased;
+
+      window.scrollTo(0, currentPos);
+
+      if (progress < 1) {
+        scrollAnimRef.current = requestAnimationFrame(step);
+      } else {
+        window.scrollTo(0, targetY);
+        scrollAnimRef.current = null;
+        window.removeEventListener('wheel', onWheel);
+        window.removeEventListener('touchstart', onTouchStart);
+      }
+    };
+
+    scrollAnimRef.current = requestAnimationFrame(step);
+  };
+
+  // Smooth scroll helper: return to Hero (Section 1) with slow, cinematic easing
   const scrollToHero = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    smoothScrollTo(0);
   };
 
   // Smooth scroll helper: advance to Section 2 (Computers & Simulations)
@@ -563,7 +848,7 @@ export function ParallaxExperience() {
     if (!containerRef.current) return;
     const maxScroll = containerRef.current.offsetHeight - window.innerHeight;
     const target = containerRef.current.offsetTop + maxScroll * (0.58 * K1);
-    window.scrollTo({ top: target, behavior: 'smooth' });
+    smoothScrollTo(target, 1400);
   };
 
   // Smooth scroll helper: advance to Section 3 (Qrome Products)
@@ -571,7 +856,18 @@ export function ParallaxExperience() {
     if (!containerRef.current) return;
     const maxScroll = containerRef.current.offsetHeight - window.innerHeight;
     const target = containerRef.current.offsetTop + maxScroll * (K1 + 0.58 * (K2 - K1));
-    window.scrollTo({ top: target, behavior: 'smooth' });
+    smoothScrollTo(target, 1500);
+  };
+
+  // Smooth scroll helper: jump to a specific slide in Section 3's horizontal scroll
+  const scrollToInsightsSlide = (slideIndex: number) => {
+    if (!containerRef.current) return;
+    const maxScroll = containerRef.current.offsetHeight - window.innerHeight;
+    const totalSlides = 5;
+    const slideFrac = totalSlides > 1 ? slideIndex / (totalSlides - 1) : 0;
+    const targetProgress = CAROUSEL_START + slideFrac * (CAROUSEL_END - CAROUSEL_START);
+    const target = containerRef.current.offsetTop + maxScroll * targetProgress;
+    smoothScrollTo(target, 900);
   };
 
   // Smooth scroll helper: advance to Section 4 (Placeholder 2)
@@ -579,7 +875,7 @@ export function ParallaxExperience() {
     if (!containerRef.current) return;
     const maxScroll = containerRef.current.offsetHeight - window.innerHeight;
     const target = containerRef.current.offsetTop + maxScroll * (CUT3_START + 0.58 * (K3 - CUT3_START));
-    window.scrollTo({ top: target, behavior: 'smooth' });
+    smoothScrollTo(target, 1600);
   };
 
   const handleSectionClick = (index: number) => {
@@ -655,7 +951,7 @@ export function ParallaxExperience() {
                 scale: heroBgScale,
                 opacity: heroBgOpacity,
               }}
-              className="absolute -inset-[5%] z-0 pointer-events-none"
+              className="absolute -inset-[6%] z-0 pointer-events-none"
             >
               <img
                 src="/hero-corn.jpg"
@@ -670,7 +966,7 @@ export function ParallaxExperience() {
                   background: useTransform(
                     [lightX, lightY],
                     ([lx, ly]) =>
-                      `radial-gradient(circle at ${lx} ${ly}, rgba(52, 211, 153, 0.08) 0%, rgba(245, 158, 11, 0.035) 35%, transparent 70%)`
+                      `radial-gradient(circle at ${lx} ${ly}, rgba(52, 211, 153, 0.12) 0%, rgba(245, 158, 11, 0.05) 35%, transparent 70%)`
                   ),
                 }}
                 className="absolute inset-0 pointer-events-none"
@@ -692,10 +988,12 @@ export function ParallaxExperience() {
               />
             </motion.div>
 
-            {/* Hero Particles: Streams upward */}
+            {/* Hero Particles: Midground layer with reactive mouse drift */}
             <motion.div
+              id="hero-particles-layer"
               style={{
-                y: heroParticlesY,
+                x: heroMouseParticlesX,
+                y: combinedHeroParticlesY,
               }}
               className="absolute inset-0 z-10 pointer-events-none"
             >
@@ -703,33 +1001,46 @@ export function ParallaxExperience() {
             </motion.div>
           </motion.div>
 
-          {/* Hero Foreground Headline & Copy */}
+          {/* Hero Foreground Headline & Copy (Completely stable, free of 3D clipping or disappearing hover effects) */}
+          {/* Hero Foreground Headline & Copy with Liquid Magnetic Hover Pull */}
           <motion.div
             id="hero-content-layer"
             style={{
               opacity: heroTextOpacity,
-              y: combinedHeroTextY,
+              y: heroScrollTextY,
               scale: heroTextScale,
               pointerEvents: heroPointerEvents,
             }}
             className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-4 sm:px-6 pointer-events-none mt-16 sm:mt-24"
           >
-            <div className="max-w-7xl mx-auto w-full [transform:translateZ(20px)]">
-              {/* Massive Bold Headline */}
-              <h1
+            <div className="max-w-7xl mx-auto w-full pointer-events-auto">
+              {/* Massive Bold Headline with Slow Cinematic Phase/Blur Entrance & Organic Liquid Pull */}
+              <motion.h1
                 id="hero-title"
-                className="font-display font-black text-[clamp(1.6rem,7vw,6.5rem)] whitespace-nowrap tracking-tight uppercase text-white leading-[0.9] drop-shadow-[0_10px_35px_rgba(0,0,0,0.85)] select-none"
+                variants={headlineLineVariants}
+                initial="hidden"
+                animate={isHeroRevealed ? 'visible' : 'hidden'}
+                className="font-display font-black text-[clamp(1.6rem,7vw,6.5rem)] whitespace-nowrap tracking-tight uppercase text-white leading-[0.9] drop-shadow-[0_12px_40px_rgba(0,0,0,0.9)] select-none will-change-[filter,opacity,transform]"
               >
-                CALISTHENICS. REVOLUTIONIZED.
-              </h1>
+                <LiquidPullText
+                  text="CALISTHENICS. REVOLUTIONIZED."
+                  maxPull={1}
+                  maxBlur={5}
+                  radius={120}
+                  lerpFactor={0.12}
+                />
+              </motion.h1>
 
-              {/* Subtitle */}
-              <p
+              {/* Subtitle with Slow Cinematic Phase/Blur Entrance (No Hover Effect) */}
+              <motion.p
                 id="hero-subtitle"
-                className="mt-4 sm:mt-6 md:mt-7 text-sm sm:text-base md:text-lg lg:text-xl font-normal text-zinc-100/85 tracking-wide max-w-2xl mx-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] px-4 select-none"
+                variants={paragraphVariants}
+                initial="hidden"
+                animate={isHeroRevealed ? 'visible' : 'hidden'}
+                className="mt-4 sm:mt-6 md:mt-7 text-sm sm:text-base md:text-lg lg:text-xl font-normal text-zinc-100/85 tracking-wide max-w-2xl mx-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] px-4 select-none will-change-[filter,opacity,transform]"
               >
                 Master skills step by step with AI that adapts to every session
-              </p>
+              </motion.p>
             </div>
           </motion.div>
         </div>
@@ -744,7 +1055,7 @@ export function ParallaxExperience() {
             WebkitClipPath: clipPathString1,
             background: globalBgGradient,
           }}
-          className="absolute inset-0 w-full h-full z-20 overflow-hidden [perspective:1400px]"
+          className="absolute inset-0 w-full h-full overflow-hidden [perspective:1400px] z-20"
         >
           {/* 3D Tilted World Stage for Section 2 */}
           <motion.div
@@ -841,11 +1152,14 @@ export function ParallaxExperience() {
               <ConstellationCanvas
                 activeSlide={currentSlide}
                 scrollProgress={smoothProgress}
+                isShiftedLeft={isExploreActive}
+                selectedTrait={selectedGeneticTrait}
+                onSelectTrait={setSelectedGeneticTrait}
               />
             </motion.div>
           </motion.div>
 
-          {/* Contenders Foreground Content (Headline, Narrative & Feature List) */}
+          {/* Contenders Foreground Content (Headline, Narrative & Feature List + Floating Explore Library Button) */}
           <motion.div
             id="contenders-content-layer"
             style={{
@@ -854,9 +1168,22 @@ export function ParallaxExperience() {
               opacity: contendersTextOpacity,
               pointerEvents: contendersPointerEvents,
             }}
-            className="absolute inset-0 z-20 flex flex-col justify-center px-6 sm:px-12 lg:px-16 max-w-7xl w-full mx-auto pointer-events-none"
+            className="absolute inset-0 z-20 flex flex-col lg:flex-row items-start lg:items-center justify-between px-6 sm:px-12 lg:px-16 max-w-7xl w-full mx-auto pointer-events-none"
           >
-            <div className="max-w-2xl text-left pointer-events-auto [transform:translateZ(24px)]">
+            <motion.div
+              animate={{
+                opacity: isExploreActive ? 0 : 1,
+                x: isExploreActive ? -140 : 0,
+                filter: isExploreActive ? 'blur(16px)' : 'blur(0px)',
+                scale: isExploreActive ? 0.92 : 1,
+                pointerEvents: isExploreActive ? 'none' : 'auto',
+              }}
+              transition={{
+                duration: 0.65,
+                ease: [0.16, 1, 0.3, 1],
+              }}
+              className="max-w-2xl text-left pointer-events-auto [transform:translateZ(24px)]"
+            >
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentSlide}
@@ -865,7 +1192,7 @@ export function ParallaxExperience() {
                   animate={isSectionRevealed ? 'visible' : 'hidden'}
                   exit="exit"
                 >
-                  {/* Bold Condensed Section 2 Heading with staggered line reveals */}
+                  {/* Bold Condensed Section 2 Heading with staggered line reveals & organic liquid hover */}
                   <h2
                     id="contenders-title"
                     className="font-display font-black text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] xl:text-[6.2rem] tracking-tight uppercase text-white leading-[0.92] drop-shadow-[0_10px_30px_rgba(0,0,0,0.85)] select-none"
@@ -874,9 +1201,15 @@ export function ParallaxExperience() {
                       <motion.span
                         key={idx}
                         variants={headlineLineVariants}
-                        className="block"
+                        className="block will-change-[filter,opacity,transform]"
                       >
-                        {line}
+                        <LiquidPullText
+                          text={line}
+                          maxPull={1}
+                          maxBlur={5}
+                          radius={120}
+                          lerpFactor={0.12}
+                        />
                       </motion.span>
                     ))}
                   </h2>
@@ -885,7 +1218,7 @@ export function ParallaxExperience() {
                   <motion.p
                     id="contenders-description"
                     variants={paragraphVariants}
-                    className="mt-5 sm:mt-7 text-sm sm:text-base md:text-lg lg:text-[17px] font-normal text-zinc-200/90 leading-relaxed max-w-xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] select-none"
+                    className="mt-5 sm:mt-7 text-sm sm:text-base md:text-lg lg:text-[17px] font-normal text-zinc-200/90 leading-relaxed max-w-xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] select-none will-change-[filter,opacity,transform]"
                   >
                     {slide.description}
                   </motion.p>
@@ -901,7 +1234,7 @@ export function ParallaxExperience() {
                       <motion.li
                         key={idx}
                         variants={featureItemVariants}
-                        className="flex items-start sm:items-center gap-3 text-xs sm:text-sm md:text-[15px] text-emerald-100/90"
+                        className="flex items-start sm:items-center gap-3 text-xs sm:text-sm md:text-[15px] text-emerald-100/90 will-change-[filter,opacity,transform]"
                       >
                         <span className="flex-shrink-0 mt-0.5 sm:mt-0 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-emerald-500/15 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.25)]">
                           <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3" strokeWidth={2.5} />
@@ -912,33 +1245,25 @@ export function ParallaxExperience() {
                       </motion.li>
                     ))}
                   </motion.ul>
-
-                  {/* Simulation Topic Switcher within Section 2 */}
-                  <div className="mt-8 flex items-center gap-2.5 select-none" aria-label="Simulation topics">
-                    {SLIDES.map((_, index) => {
-                      const isActive = index === currentSlide;
-                      return (
-                        <button
-                          key={index}
-                          id={`simulation-topic-pill-${index}`}
-                          onClick={() => setCurrentSlide(index)}
-                          className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-400/50 ${
-                            isActive
-                              ? 'w-8 bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.8)]'
-                              : 'w-2.5 bg-white/30 hover:bg-white/70'
-                          }`}
-                          aria-label={`Switch to topic ${index + 1}`}
-                          aria-current={isActive ? 'true' : 'false'}
-                        />
-                      );
-                    })}
-                    <span className="text-[10px] font-mono tracking-widest text-emerald-400/70 ml-2">
-                      0{currentSlide + 1} / 0{SLIDES.length}
-                    </span>
-                  </div>
                 </motion.div>
               </AnimatePresence>
-            </div>
+            </motion.div>
+
+            {/* Floating Glassmorphic Circle Button in the Constellation / Particles Field */}
+            <motion.div
+              animate={{
+                opacity: isExploreActive ? 0 : 1,
+                scale: isExploreActive ? 0.8 : 1,
+                pointerEvents: isExploreActive ? 'none' : 'auto',
+              }}
+              transition={{
+                duration: 0.45,
+                ease: [0.16, 1, 0.3, 1],
+              }}
+              className="mt-8 lg:mt-0 pointer-events-auto [transform:translateZ(32px)] flex items-center justify-center lg:mr-8 xl:mr-14 self-center lg:self-auto"
+            >
+              <ExploreLibraryButton onClick={() => setIsExploreActive(true)} />
+            </motion.div>
           </motion.div>
         </motion.div>
 
@@ -976,6 +1301,9 @@ export function ParallaxExperience() {
             className="absolute inset-0"
           >
             <PlaceholderSection
+              isRevealed={isSectionThreeRevealed}
+              entryProgress={sectionThreeEntryProgress}
+              exitProgress={sectionThreeExitProgress}
               contentY={placeholderTextY}
               contentOpacity={placeholderTextOpacity}
               mouseX={smoothMouseX}
@@ -987,16 +1315,20 @@ export function ParallaxExperience() {
             style={{
               y: insightsContentY,
               opacity: insightsContentOpacity,
+              scale: insightsContentScale,
               pointerEvents: insightsContentPointerEvents,
             }}
             className="absolute inset-0"
           >
             <HorizontalTextScrollSection
               scrollProgress={smoothProgress}
-              sectionProgressStart={INSIGHTS_ENTER_END}
+              sectionProgressStart={CAROUSEL_START}
               sectionProgressEnd={CAROUSEL_END}
+              entryProgress={insightsEntryProgress}
+              exitProgress={insightsExitProgress}
               mouseX={smoothMouseX}
               mouseY={smoothMouseY}
+              onSlideSelect={scrollToInsightsSlide}
             />
           </motion.div>
         </motion.div>
@@ -1019,16 +1351,28 @@ export function ParallaxExperience() {
         {/* =========================================================================
             CHROME NAVIGATION & CONTROLS (SHARED PERSISTENT INTERFACE)
             ========================================================================= */}
-        {/* Top Header Bar with Logo & Hamburger Menu */}
-        <header
+        {/* Top Header Bar with Logo & Hamburger Menu (Slow, gentle fade in closely following text entrance) */}
+        <motion.header
           id="main-header"
-          className="absolute top-0 left-0 right-0 z-40 w-full py-6 md:py-8 pointer-events-auto"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{
+            opacity: isExploreActive ? 0 : 1,
+            y: isExploreActive ? -20 : 0,
+            pointerEvents: isExploreActive ? 'none' : 'auto',
+          }}
+          transition={{
+            duration: isExploreActive ? 0.35 : 2.2,
+            delay: isExploreActive ? 0 : 1.3,
+            ease: [0.16, 1, 0.3, 1],
+          }}
+          className="absolute top-0 left-0 right-0 z-40 w-full py-6 md:py-8 will-change-[opacity,transform]"
         >
           <div className="max-w-7xl w-full mx-auto px-6 sm:px-12 lg:px-16 flex items-center justify-between">
             {/* Pioneer Brand Logo (Clicking smoothly returns to Hero) */}
             <button
+              id="header-pioneer-logo-btn"
               onClick={scrollToHero}
-              className="focus:outline-none cursor-pointer hover:opacity-90 transition-opacity"
+              className="focus:outline-none cursor-pointer hover:opacity-90 active:scale-95 transition-opacity"
               aria-label="Return to top"
             >
               <PioneerLogo />
@@ -1046,15 +1390,18 @@ export function ParallaxExperience() {
               <span className="w-7 h-[2px] bg-white transition-all duration-300 group-hover:w-8 group-hover:bg-emerald-400" />
             </button>
           </div>
-        </header>
+        </motion.header>
 
         {/* Floating Right-Edge Navigation Dot Indicator for Main Story Sections (Scroll-revealed) */}
         <motion.nav
           id="floating-story-navigation"
+          animate={{
+            opacity: isExploreActive ? 0 : 1,
+            pointerEvents: isExploreActive ? 'none' : 'auto',
+          }}
+          transition={{ duration: 0.3 }}
           style={{
-            opacity: navDotsOpacity,
             x: navDotsX,
-            pointerEvents: navDotsPointerEvents,
           }}
           aria-label="Story sections navigation"
           className="absolute right-5 sm:right-8 lg:right-10 top-1/2 -translate-y-1/2 flex flex-col items-center gap-5 z-40 select-none"
@@ -1165,9 +1512,63 @@ export function ParallaxExperience() {
           </span>
         </motion.div>
 
+        {/* Minimal Floating Close Button to Restore Text from Genetic Node Explorer View */}
+        <AnimatePresence>
+          {isExploreActive && (
+            <motion.div
+              initial={{ opacity: 0, y: -16, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -16, scale: 0.9 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              className="fixed top-6 right-6 sm:top-8 sm:right-8 z-50 flex items-center pointer-events-auto"
+            >
+              <button
+                id="close-library-explore-mode-btn"
+                type="button"
+                onClick={() => setIsExploreActive(false)}
+                className="group flex items-center gap-2 px-4 py-2 rounded-full bg-[#020d07]/85 hover:bg-[#031c0e] border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 hover:text-white backdrop-blur-md transition-all duration-200 shadow-[0_6px_30px_rgba(0,0,0,0.85),0_0_20px_rgba(16,185,129,0.3)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                aria-label="Close explore view and restore text"
+              >
+                <X className="w-4 h-4 text-emerald-400 group-hover:rotate-90 transition-transform duration-200" />
+                <span className="font-mono text-xs font-semibold tracking-wider uppercase">Close</span>
+                <kbd className="hidden sm:inline-block text-[10px] px-1.5 py-0.5 rounded bg-black/60 text-zinc-400 font-mono border border-white/10">
+                  ESC
+                </kbd>
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Genetic Trait Inspection Side Panel (Positioned on the Right of the Node Tree in Explore Mode) */}
+        <AnimatePresence mode="wait">
+          {isExploreActive && selectedGeneticTrait && (
+            <motion.div
+              id="genetic-trait-side-panel-container"
+              key="genetic-trait-side-panel-container"
+              className="fixed z-40 right-6 sm:right-10 lg:right-16 xl:right-24 top-1/2 -translate-y-1/2 w-full max-w-md lg:max-w-lg pointer-events-auto"
+            >
+              <GeneticTraitSidePanel
+                trait={selectedGeneticTrait}
+                onClose={() => setSelectedGeneticTrait(null)}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Slide-out Navigation Drawer */}
-        <NavDrawer isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} />
+        <NavDrawer
+          isOpen={isNavOpen}
+          onClose={() => setIsNavOpen(false)}
+          onLogoClick={scrollToHero}
+        />
+
+        {/* Genetic Trait Library Explorer Modal */}
+        <GeneticLibraryModal
+          isOpen={isLibraryModalOpen}
+          onClose={() => setIsLibraryModalOpen(false)}
+        />
       </div>
     </motion.div>
   );
 }
+

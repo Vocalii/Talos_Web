@@ -33,25 +33,11 @@ interface ContendersSectionProps {
 }
 
 export function ContendersSection({ onScrollToHero }: ContendersSectionProps) {
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const currentSlide = 0;
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [isCookieModalOpen, setIsCookieModalOpen] = useState(false);
 
-  // Auto-advance or allow manual navigation
-  const slide = SLIDES[currentSlide];
-
-  // Optional keyboard navigation for slides
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-        setCurrentSlide((prev) => (prev + 1) % SLIDES.length);
-      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-        setCurrentSlide((prev) => (prev - 1 + SLIDES.length) % SLIDES.length);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  const slide = SLIDES[0];
 
   return (
     <section
@@ -155,57 +141,6 @@ export function ContendersSection({ onScrollToHero }: ContendersSectionProps) {
           </AnimatePresence>
         </div>
       </main>
-
-      {/* Right-Edge Vertical Pagination Dots matching screenshot */}
-      <div
-        id="contenders-pagination"
-        className="absolute right-6 sm:right-10 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-4 pointer-events-auto"
-        aria-label="Story sections"
-      >
-        {SLIDES.map((_, index) => {
-          const isActive = index === currentSlide;
-          return (
-            <button
-              key={index}
-              id={`pagination-dot-${index}`}
-              onClick={() => setCurrentSlide(index)}
-              className="relative flex items-center justify-center p-2 focus:outline-none cursor-pointer group"
-              aria-label={`Go to slide ${index + 1}`}
-              aria-current={isActive ? 'true' : 'false'}
-            >
-              {isActive ? (
-                // Active slide: circled dot with outer thin ring as seen in screenshot
-                <div className="relative flex items-center justify-center w-7 h-7">
-                  {/* Outer circle with rotating arc effect */}
-                  <motion.svg
-                    initial={{ rotate: 0 }}
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 16, repeat: Infinity, ease: 'linear' }}
-                    className="absolute inset-0 w-full h-full text-white/80"
-                    viewBox="0 0 28 28"
-                  >
-                    <circle
-                      cx="14"
-                      cy="14"
-                      r="12"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.2"
-                      strokeDasharray="60 15"
-                      className="opacity-90"
-                    />
-                  </motion.svg>
-                  {/* Central solid dot */}
-                  <div className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
-                </div>
-              ) : (
-                // Inactive slide: small clean dot
-                <div className="w-1.5 h-1.5 rounded-full bg-white/40 group-hover:bg-white/80 transition-all duration-200" />
-              )}
-            </button>
-          );
-        })}
-      </div>
 
       {/* Bottom Footer Area with Cookie Preferences Pill matching screenshot */}
       <footer

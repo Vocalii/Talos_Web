@@ -1,109 +1,162 @@
-import { useRef, useEffect, useState } from 'react';
-import { motion, MotionValue, useTransform, useSpring } from 'motion/react';
-import { Sparkles, Shield, Cpu, Zap, TrendingUp, Award } from 'lucide-react';
+import React, { useRef, useEffect, useState } from 'react';
+import { motion, MotionValue, useTransform, useSpring, useMotionValue } from 'motion/react';
 
 interface TextSlide {
   id: string;
-  tag: string;
   headline: string;
-  subtext: string;
-  metric?: string;
-  metricLabel?: string;
-  icon: typeof Shield;
 }
 
 const TEXT_SLIDES: TextSlide[] = [
   {
     id: 'advantage',
-    tag: 'FIELD-PROVEN TRIAL ADVANTAGE',
     headline: '+7.7 bu/A Yield Advantage in 2020 On-Farm Trials',
-    subtext: 'Demonstrating consistent yield superiority over legacy SmartStax® technology across diverse geographies.',
-    metric: '+7.7 bu/A',
-    metricLabel: 'Yield Increase vs SmartStax®',
-    icon: TrendingUp,
   },
   {
     id: 'protection',
-    tag: 'FOUR MODES OF DEFENSE',
     headline: '2 Modes Above & 2 Below for Complete Insect Control',
-    subtext: 'Dual-action above-ground and below-ground bio-protection preserves pristine root mass and stalk integrity.',
-    metric: '4 Modes',
-    metricLabel: 'Comprehensive Insect Protection',
-    icon: Shield,
   },
   {
     id: 'simulations',
-    tag: 'PREDICTIVE BIOTECH ACCELERATION',
     headline: 'Over 100 Million Virtual Genomic Simulations Run Annually',
-    subtext: 'Compressing a decade of field breeding into months by evaluating billions of trait combinations computationally.',
-    metric: '100M+',
-    metricLabel: 'Virtual Hybrid Runs Per Year',
-    icon: Cpu,
   },
   {
     id: 'root-mass',
-    tag: 'MAXIMUM NUTRIENT UPTAKE',
     headline: 'Unmatched Root Volume & Extended Drought Resilience',
-    subtext: 'Engineered cellular vigor ensures reliable nutrient uptake even in dry, nutrient-demanding soil profiles.',
-    metric: '3.2x',
-    metricLabel: 'Root Surface Area Retention',
-    icon: Zap,
   },
   {
     id: 'elite-performance',
-    tag: 'NEXT-GENERATION PERFORMANCE',
     headline: 'The Most Optimized Agronomic Balance in the Portfolio',
-    subtext: 'Delivering exceptional test weight, early-season vigor, and rapid drydown for modern progressive growers.',
-    metric: '99.4%',
-    metricLabel: 'Agronomic Standability Score',
-    icon: Award,
   },
 ];
 
 interface HorizontalTextScrollSectionProps {
   scrollProgress: MotionValue<number>;
-  sectionProgressStart: number; // e.g. 0.75
-  sectionProgressEnd: number;   // e.g. 1.0
+  sectionProgressStart: number;
+  sectionProgressEnd: number;
+  entryProgress?: MotionValue<number>;
+  exitProgress?: MotionValue<number>;
   mouseX?: MotionValue<number>;
   mouseY?: MotionValue<number>;
+  onSlideSelect?: (index: number) => void;
 }
+
+interface HorizontalSlideProps {
+  slide: TextSlide;
+  index: number;
+  totalSlides: number;
+  localProgress: MotionValue<number>;
+  onSelect?: () => void;
+}
+
+const HorizontalSlide: React.FC<HorizontalSlideProps> = ({
+  slide,
+  index,
+  totalSlides,
+  localProgress,
+  onSelect,
+}) => {
+  const slideRef = useRef<HTMLDivElement>(null);
+  const targetP = totalSlides > 1 ? index / (totalSlides - 1) : 0;
+  const step = totalSlides > 1 ? 1 / (totalSlides - 1) : 1;
+
+  // Continuous, pure scroll-linked opacity curve:
+  // Perfectly focused when centered (1.0), smoothly dimming with distance
+  const slideOpacity = useTransform(localProgress, (p: number) => {
+    const dist = Math.abs(p - targetP) / step;
+    if (dist <= 0.05) return 1;
+    if (dist >= 1.7) return 0.12;
+    if (dist >= 1.0) {
+      return 0.40 - ((dist - 1.0) / 0.7) * 0.28;
+    }
+    return 1 - dist * 0.60;
+  });
+
+  // Continuous smooth scaling: 1.0 when active, 0.90 when neighboring
+  const slideScale = useTransform(localProgress, (p: number) => {
+    const dist = Math.abs(p - targetP) / step;
+    if (dist <= 0.05) return 1.0;
+    if (dist >= 1.5) return 0.88;
+    return 1.0 - (dist / 1.5) * 0.12;
+  });
+
+  // Continuous subtle vertical parallax drift
+  const slideY = useTransform(localProgress, (p: number) => {
+    const dist = Math.abs(p - targetP) / step;
+    if (dist <= 0.05) return 0;
+    if (dist >= 1.5) return 14;
+    return (dist / 1.5) * 14;
+  });
+
+  // Subtle 3D rotation Y (perspectival curve into the horizon as it scrolls past)
+  const slideRotateY = useTransform(localProgress, (p: number) => {
+    const diff = (p - targetP) / step;
+    const clamped = Math.max(-1.5, Math.min(1.5, diff));
+    return clamped * 5;
+  });
+
+  return (
+    <motion.div
+      ref={slideRef}
+      id={`horizontal-slide-${index}`}
+      style={{
+        opacity: slideOpacity,
+        scale: slideScale,
+        y: slideY,
+        rotateY: slideRotateY,
+        transformPerspective: 1200,
+      }}
+      onClick={onSelect}
+      className="w-[86vw] sm:w-[76vw] md:w-[68vw] lg:w-[60vw] max-w-4xl flex-shrink-0 flex flex-col justify-center text-left py-6 will-change-transform cursor-pointer select-none"
+    >
+      {/* Prominent High-Impact Headline — Pure Typography */}
+      <h3
+        className="font-display font-black text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-[4.75rem] tracking-tight uppercase leading-[1.04] text-white drop-shadow-[0_12px_36px_rgba(0,0,0,0.95)]"
+      >
+        {slide.headline}
+      </h3>
+    </motion.div>
+  );
+};
 
 export function HorizontalTextScrollSection({
   scrollProgress,
   sectionProgressStart,
   sectionProgressEnd,
+  entryProgress,
+  exitProgress,
   mouseX,
   mouseY,
+  onSlideSelect,
 }: HorizontalTextScrollSectionProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [maxShiftPx, setMaxShiftPx] = useState(0);
 
-  // Map the section scroll window to 0 -> 1 local progress
+  const defaultEntry = useMotionValue(1);
+  const activeEntry = entryProgress || defaultEntry;
+
+  const defaultExit = useMotionValue(0);
+  const activeExit = exitProgress || defaultExit;
+
+  // Map the section scroll window to 0 -> 1 local progress with strict clamping
   const localProgress = useTransform(
     scrollProgress,
     [sectionProgressStart, sectionProgressEnd],
-    [0, 1]
+    [0, 1],
+    { clamp: true }
   );
 
-  // Kept responsive (comparable to the page's main scroll spring, not the
-  // much heavier ~60/28/1.1 spring used elsewhere) so it never falls behind
-  // a normal scroll pace and gets cut off early by Cut 3 starting.
+  // Responsive spring with optimized mass & damping for silky horizontal glide
   const smoothLocalProgress = useSpring(localProgress, {
-    stiffness: 220,
-    damping: 30,
-    mass: 0.5,
+    stiffness: 170,
+    damping: 28,
+    mass: 0.35,
+    restDelta: 0.0001,
   });
 
   const totalSlides = TEXT_SLIDES.length;
 
-  // Horizontal translation is measured directly from the actual rendered
-  // layout (first/last slide centers), not guessed as a percentage of track
-  // width — a guessed percentage can under/overshoot depending on real slide
-  // widths, gaps, and padding, leaving dead scroll space after the last
-  // slide is already centered.
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [maxShiftPx, setMaxShiftPx] = useState(0);
-
+  // Accurately compute physical horizontal shift from slide center offsets
   useEffect(() => {
     const computeShift = () => {
       const track = trackRef.current;
@@ -119,37 +172,59 @@ export function HorizontalTextScrollSection({
 
     computeShift();
     window.addEventListener('resize', computeShift);
-    return () => window.removeEventListener('resize', computeShift);
+
+    if (typeof document !== 'undefined' && 'fonts' in document) {
+      document.fonts.ready.then(computeShift).catch(() => {});
+    }
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && trackRef.current) {
+      ro = new ResizeObserver(computeShift);
+      ro.observe(trackRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', computeShift);
+      if (ro) ro.disconnect();
+    };
   }, []);
 
   const trackX = useTransform(smoothLocalProgress, [0, 1], [0, maxShiftPx]);
 
-  // Track active slide index for pagination indicator
-  useEffect(() => {
-    const unsubscribe = smoothLocalProgress.on('change', (p) => {
-      const idx = Math.min(
-        totalSlides - 1,
-        Math.max(0, Math.round(p * (totalSlides - 1)))
-      );
-      setActiveSlideIndex(idx);
-    });
-    return () => unsubscribe();
-  }, [smoothLocalProgress, totalSlides]);
+  // =========================================================================
+  // CINEMATIC ENTRANCE & EXIT CHOREOGRAPHY FOR THE HORIZONTAL SECTION
+  // =========================================================================
+  // Main horizontal track entrance
+  const trackEntryY = useTransform(activeEntry, [0.15, 0.85], [44, 0]);
+  const trackEntryOpacity = useTransform(activeEntry, [0.15, 0.75], [0, 1]);
+  const trackEntryScale = useTransform(activeEntry, [0.15, 0.90], [0.95, 1.0]);
+
+  // Graceful exit transforms before Section 4 diagonal wipe begins
+  const containerExitY = useTransform(activeExit, [0.08, 0.85], [0, -32]);
+  const containerExitOpacity = useTransform(activeExit, [0.08, 0.80], [1, 0]);
 
   return (
-    <div
+    <motion.div
       ref={containerRef}
       id="horizontal-text-scroll-container"
-      className="relative w-full h-full min-h-screen overflow-hidden select-none flex flex-col justify-between"
+      style={{
+        y: containerExitY,
+        opacity: containerExitOpacity,
+      }}
+      className="relative w-full h-full min-h-screen overflow-hidden select-none flex items-center justify-center"
     >
-      {/* The shared atmospheric background is rendered once, persistently,
-          by the parent (ParallaxExperience) — this component is
-          foreground content only. */}
-
       {/* =========================================================================
           HORIZONTAL SCROLLING TEXT TRACK (CENTERS EACH STATEMENT ON SCROLL)
           ========================================================================= */}
-      <div className="relative z-10 w-full flex-1 flex items-center overflow-visible">
+      <motion.div
+        id="horizontal-scroll-track-stage"
+        style={{
+          y: trackEntryY,
+          opacity: trackEntryOpacity,
+          scale: trackEntryScale,
+        }}
+        className="relative z-10 w-full flex items-center overflow-visible"
+      >
         <motion.div
           ref={trackRef}
           style={{
@@ -157,33 +232,18 @@ export function HorizontalTextScrollSection({
           }}
           className="flex items-center gap-20 sm:gap-32 lg:gap-44 pl-[8vw] sm:pl-[14vw] lg:pl-[18vw] pr-[20vw] will-change-transform"
         >
-          {TEXT_SLIDES.map((slide, index) => {
-            const isCurrent = index === activeSlideIndex;
-
-            return (
-              <motion.div
-                key={slide.id}
-                id={`horizontal-slide-${index}`}
-                animate={{
-                  opacity: isCurrent ? 1 : 0.45,
-                  scale: isCurrent ? 1 : 0.94,
-                }}
-                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                className="w-[82vw] sm:w-[68vw] md:w-[60vw] lg:w-[54vw] max-w-3xl flex-shrink-0 flex flex-col justify-center text-left py-6"
-              >
-                {/* Large Clean Prominent Headline */}
-                <h3
-                  className={`font-display font-black text-2xl sm:text-4xl md:text-5xl lg:text-[3.25rem] tracking-tight uppercase leading-[1.04] transition-colors duration-300 drop-shadow-[0_10px_30px_rgba(0,0,0,0.9)] ${isCurrent ? 'text-white' : 'text-zinc-400'
-                    }`}
-                >
-                  {slide.headline}
-                </h3>
-              </motion.div>
-            );
-          })}
+          {TEXT_SLIDES.map((slide, index) => (
+            <HorizontalSlide
+              key={slide.id}
+              slide={slide}
+              index={index}
+              totalSlides={totalSlides}
+              localProgress={smoothLocalProgress}
+              onSelect={() => onSlideSelect && onSlideSelect(index)}
+            />
+          ))}
         </motion.div>
-      </div>
-
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

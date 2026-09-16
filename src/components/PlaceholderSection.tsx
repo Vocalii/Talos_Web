@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, MouseEvent, TouchEvent } from 'react';
 import { motion, AnimatePresence, MotionValue, useMotionValue, useSpring, useTransform } from 'motion/react';
 import { X, Sparkles, ShieldCheck, ChevronRight } from 'lucide-react';
+import { LiquidPullText } from './LiquidPullText';
 
 interface ProductData {
   id: number;
@@ -14,6 +15,75 @@ interface ProductData {
   comparisonTech: string;
   keyFeatures: string[];
 }
+
+const productHeadlineVariants = {
+  hidden: { opacity: 0, y: 24, filter: 'blur(30px)', scale: 0.98 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    scale: 1,
+    transition: {
+      duration: 2.4,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -12,
+    filter: 'blur(12px)',
+    transition: {
+      duration: 0.35,
+      ease: [0.4, 0, 0.2, 1],
+    },
+  },
+};
+
+const productDescVariants = {
+  hidden: { opacity: 0, y: 18, filter: 'blur(20px)' },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    transition: {
+      duration: 2.2,
+      delay: 0.35,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -8,
+    filter: 'blur(8px)',
+    transition: {
+      duration: 0.3,
+      ease: [0.4, 0, 0.2, 1],
+    },
+  },
+};
+
+const productCtaVariants = {
+  hidden: { opacity: 0, y: 14, filter: 'blur(14px)' },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    transition: {
+      duration: 2.0,
+      delay: 0.6,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -6,
+    filter: 'blur(6px)',
+    transition: {
+      duration: 0.25,
+      ease: [0.4, 0, 0.2, 1],
+    },
+  },
+};
 
 const PRODUCTS: ProductData[] = [
   {
@@ -72,20 +142,127 @@ const PRODUCTS: ProductData[] = [
 interface PlaceholderSectionProps {
   contentY?: MotionValue<string>;
   contentOpacity?: MotionValue<number>;
+  entryProgress?: MotionValue<number>;
+  exitProgress?: MotionValue<number>;
   mouseX?: MotionValue<number>;
   mouseY?: MotionValue<number>;
+  isRevealed?: boolean;
 }
 
 export function PlaceholderSection({
   contentY,
   contentOpacity,
+  entryProgress,
+  exitProgress,
   mouseX: externalMouseX,
   mouseY: externalMouseY,
+  isRevealed = true,
 }: PlaceholderSectionProps) {
-  // Active product state
-  const [selectedProductIndex, setSelectedProductIndex] = useState(2);
+  // Active product state (QROME® PRODUCTS)
+  const selectedProductIndex = 2;
   const [isLearnMoreOpen, setIsLearnMoreOpen] = useState(false);
   const [isHotspotOpen, setIsHotspotOpen] = useState(false);
+
+  // Normalized entry progress: use provided entryProgress, or fallback
+  const fallbackEntry = useMotionValue(1);
+  const activeEntry = entryProgress || fallbackEntry;
+
+  // Normalized exit progress: use provided exitProgress, or fallback
+  const fallbackExit = useMotionValue(0);
+  const activeExit = exitProgress || fallbackExit;
+
+  // =========================================================================
+  // HIGH-PRECISION ENTRY CHOREOGRAPHY: DECOUPLED TEXT & PRODUCT KINEMATICS
+  // =========================================================================
+
+  // 1. LEFT TEXT COLUMN ENTRANCE
+  const textColEntryY = useTransform(activeEntry, [0.10, 0.78], [54, 0]);
+  const textColEntryOpacity = useTransform(activeEntry, [0.10, 0.68], [0, 1]);
+
+  const brandEyebrowY = useTransform(activeEntry, [0.12, 0.60], [22, 0]);
+  const brandEyebrowOpacity = useTransform(activeEntry, [0.12, 0.50], [0, 1]);
+
+  const titleY = useTransform(activeEntry, [0.20, 0.72], [36, 0]);
+  const titleOpacity = useTransform(activeEntry, [0.20, 0.62], [0, 1]);
+  const titleScale = useTransform(activeEntry, [0.20, 0.74], [0.94, 1]);
+
+  const descY = useTransform(activeEntry, [0.28, 0.80], [28, 0]);
+  const descOpacity = useTransform(activeEntry, [0.28, 0.72], [0, 1]);
+
+  const ctaY = useTransform(activeEntry, [0.38, 0.86], [20, 0]);
+  const ctaOpacity = useTransform(activeEntry, [0.38, 0.78], [0, 1]);
+
+  // 2. RIGHT / CENTER PRODUCT 3D STAGE ENTRANCE
+  const productStageY = useTransform(activeEntry, [0.14, 0.82], [56, 0]);
+  const productStageOpacity = useTransform(activeEntry, [0.14, 0.70], [0, 1]);
+
+  const promptY = useTransform(activeEntry, [0.40, 0.90], [-18, 0]);
+  const promptOpacity = useTransform(activeEntry, [0.40, 0.80], [0, 1]);
+
+  const glowScale = useTransform(activeEntry, [0.14, 0.82], [0.45, 1.0]);
+  const glowOpacity = useTransform(activeEntry, [0.14, 0.70], [0, 1]);
+
+  const orbitScale = useTransform(activeEntry, [0.20, 0.86], [0.65, 1.0]);
+  const orbitOpacity = useTransform(activeEntry, [0.20, 0.74], [0, 1]);
+  const orbitEntryRotateZ = useTransform(activeEntry, [0.20, 0.86], [-22, 0]);
+
+  const kernelEntryScale = useTransform(activeEntry, [0.16, 0.84], [0.72, 1.0]);
+  const kernelEntryY = useTransform(activeEntry, [0.16, 0.84], [44, 0]);
+  const kernelEntryRotateY = useTransform(activeEntry, [0.16, 0.86], [-26, 0]);
+  const kernelEntryRotateX = useTransform(activeEntry, [0.16, 0.86], [14, 0]);
+  const kernelEntryOpacity = useTransform(activeEntry, [0.16, 0.64], [0, 1]);
+
+  const hotspotScale = useTransform(activeEntry, [0.48, 0.96], [0, 1]);
+  const hotspotOpacity = useTransform(activeEntry, [0.48, 0.86], [0, 1]);
+
+  // =========================================================================
+  // HIGH-PRECISION EXIT CHOREOGRAPHY: DECOUPLED TEXT & PRODUCT KINEMATICS
+  // (Cinematic elongated sequence across extended scroll window)
+  // =========================================================================
+
+  // 1. LEFT TEXT COLUMN EXIT
+  const textColExitY = useTransform(activeExit, [0.10, 0.92], [0, -52]);
+  const textColExitOpacity = useTransform(activeExit, [0.10, 0.86], [1, 0]);
+
+  const brandEyebrowExitY = useTransform(activeExit, [0.18, 0.80], [0, -32]);
+  const brandEyebrowExitOpacity = useTransform(activeExit, [0.18, 0.72], [1, 0]);
+
+  const titleExitY = useTransform(activeExit, [0.18, 0.84], [0, -46]);
+  const titleExitOpacity = useTransform(activeExit, [0.18, 0.76], [1, 0]);
+  const titleExitScale = useTransform(activeExit, [0.18, 0.88], [1, 0.93]);
+
+  const descExitY = useTransform(activeExit, [0.12, 0.68], [0, -36]);
+  const descExitOpacity = useTransform(activeExit, [0.12, 0.60], [1, 0]);
+
+  const ctaExitY = useTransform(activeExit, [0.08, 0.52], [0, -26]);
+  const ctaExitOpacity = useTransform(activeExit, [0.08, 0.45], [1, 0]);
+
+  // 2. CENTER / RIGHT PRODUCT 3D STAGE EXIT
+  const productStageExitY = useTransform(activeExit, [0.08, 0.94], [0, -58]);
+  const productStageExitOpacity = useTransform(activeExit, [0.08, 0.88], [1, 0]);
+
+  const promptExitY = useTransform(activeExit, [0.0, 0.36], [0, -22]);
+  const promptExitOpacity = useTransform(activeExit, [0.0, 0.30], [1, 0]);
+
+  const glowExitScale = useTransform(activeExit, [0.10, 0.88], [1.0, 0.42]);
+  const glowExitOpacity = useTransform(activeExit, [0.10, 0.78], [1, 0]);
+
+  const orbitExitScale = useTransform(activeExit, [0.10, 0.92], [1.0, 0.60]);
+  const orbitExitOpacity = useTransform(activeExit, [0.10, 0.80], [1, 0]);
+  const orbitExitRotateZ = useTransform(activeExit, [0.10, 0.94], [0, 32]);
+
+  const kernelExitScale = useTransform(activeExit, [0.08, 0.94], [1.0, 0.64]);
+  const kernelExitY = useTransform(activeExit, [0.08, 0.94], [0, -52]);
+  const kernelExitRotateY = useTransform(activeExit, [0.08, 0.94], [0, 30]);
+  const kernelExitRotateX = useTransform(activeExit, [0.08, 0.94], [0, -16]);
+  const kernelExitOpacity = useTransform(activeExit, [0.24, 0.88], [1, 0]);
+
+  const hotspotExitScale = useTransform(activeExit, [0.0, 0.38], [1, 0]);
+  const hotspotExitOpacity = useTransform(activeExit, [0.0, 0.32], [1, 0]);
+
+  // =========================================================================
+  // COMBINED TRANSFORMS (MOUSE TILT + ENTRY + EXIT)
+  // =========================================================================
 
   // Internal tilt physics if external not provided
   const internalMouseX = useMotionValue(0);
@@ -157,6 +334,127 @@ export function PlaceholderSection({
   const kernelTiltX = useTransform(smoothY, [-1, 1], [9, -9]);
   const kernelTiltY = useTransform(smoothX, [-1, 1], [-12, 12]);
 
+  // Left column combined transforms
+  const combinedTextColY = useTransform(
+    [textDisplaceY, textColEntryY, textColExitY],
+    ([mouseY, entryY, exitY]) => (mouseY as number) + (entryY as number) + (exitY as number)
+  );
+  const combinedTextColOpacity = useTransform(
+    [textColEntryOpacity, textColExitOpacity],
+    ([enOp, exOp]) => (enOp as number) * (exOp as number)
+  );
+
+  const combinedBrandEyebrowY = useTransform(
+    [brandEyebrowY, brandEyebrowExitY],
+    ([enY, exY]) => (enY as number) + (exY as number)
+  );
+  const combinedBrandEyebrowOpacity = useTransform(
+    [brandEyebrowOpacity, brandEyebrowExitOpacity],
+    ([enOp, exOp]) => (enOp as number) * (exOp as number)
+  );
+
+  const combinedTitleY = useTransform(
+    [titleY, titleExitY],
+    ([enY, exY]) => (enY as number) + (exY as number)
+  );
+  const combinedTitleOpacity = useTransform(
+    [titleOpacity, titleExitOpacity],
+    ([enOp, exOp]) => (enOp as number) * (exOp as number)
+  );
+  const combinedTitleScale = useTransform(
+    [titleScale, titleExitScale],
+    ([enSc, exSc]) => (enSc as number) * (exSc as number)
+  );
+
+  const combinedDescY = useTransform(
+    [descY, descExitY],
+    ([enY, exY]) => (enY as number) + (exY as number)
+  );
+  const combinedDescOpacity = useTransform(
+    [descOpacity, descExitOpacity],
+    ([enOp, exOp]) => (enOp as number) * (exOp as number)
+  );
+
+  const combinedCtaY = useTransform(
+    [ctaY, ctaExitY],
+    ([enY, exY]) => (enY as number) + (exY as number)
+  );
+  const combinedCtaOpacity = useTransform(
+    [ctaOpacity, ctaExitOpacity],
+    ([enOp, exOp]) => (enOp as number) * (exOp as number)
+  );
+
+  // Center / Right Stage combined transforms
+  const combinedProductStageY = useTransform(
+    [productStageY, productStageExitY],
+    ([enY, exY]) => (enY as number) + (exY as number)
+  );
+  const combinedProductStageOpacity = useTransform(
+    [productStageOpacity, productStageExitOpacity],
+    ([enOp, exOp]) => (enOp as number) * (exOp as number)
+  );
+
+  const combinedPromptY = useTransform(
+    [promptY, promptExitY],
+    ([enY, exY]) => (enY as number) + (exY as number)
+  );
+  const combinedPromptOpacity = useTransform(
+    [promptOpacity, promptExitOpacity],
+    ([enOp, exOp]) => (enOp as number) * (exOp as number)
+  );
+
+  const combinedGlowScale = useTransform(
+    [glowScale, glowExitScale],
+    ([enSc, exSc]) => (enSc as number) * (exSc as number)
+  );
+  const combinedGlowOpacity = useTransform(
+    [glowOpacity, glowExitOpacity],
+    ([enOp, exOp]) => (enOp as number) * (exOp as number)
+  );
+
+  const combinedOrbitScale = useTransform(
+    [orbitScale, orbitExitScale],
+    ([enSc, exSc]) => (enSc as number) * (exSc as number)
+  );
+  const combinedOrbitOpacity = useTransform(
+    [orbitOpacity, orbitExitOpacity],
+    ([enOp, exOp]) => (enOp as number) * (exOp as number)
+  );
+  const combinedOrbitRotateZ = useTransform(
+    [orbitEntryRotateZ, orbitExitRotateZ],
+    ([enRot, exRot]) => (enRot as number) + (exRot as number)
+  );
+
+  const combinedKernelScale = useTransform(
+    [kernelEntryScale, kernelExitScale],
+    ([enSc, exSc]) => (enSc as number) * (exSc as number)
+  );
+  const combinedKernelY = useTransform(
+    [kernelEntryY, kernelExitY],
+    ([enY, exY]) => (enY as number) + (exY as number)
+  );
+  const combinedKernelRotateY = useTransform(
+    [kernelTiltY, kernelEntryRotateY, kernelExitRotateY],
+    ([tiltY, enRotY, exRotY]) => (tiltY as number) + (enRotY as number) + (exRotY as number)
+  );
+  const combinedKernelRotateX = useTransform(
+    [kernelTiltX, kernelEntryRotateX, kernelExitRotateX],
+    ([tiltX, enRotX, exRotX]) => (tiltX as number) + (enRotX as number) + (exRotX as number)
+  );
+  const combinedKernelOpacity = useTransform(
+    [kernelEntryOpacity, kernelExitOpacity],
+    ([enOp, exOp]) => (enOp as number) * (exOp as number)
+  );
+
+  const combinedHotspotScale = useTransform(
+    [hotspotScale, hotspotExitScale],
+    ([enSc, exSc]) => (enSc as number) * (exSc as number)
+  );
+  const combinedHotspotOpacity = useTransform(
+    [hotspotOpacity, hotspotExitOpacity],
+    ([enOp, exOp]) => (enOp as number) * (exOp as number)
+  );
+
   return (
     <div
       id="placeholder-section-container"
@@ -180,22 +478,23 @@ export function PlaceholderSection({
       <motion.div
         id="products-3d-stage"
         style={{
-          y: contentY || 0,
+          y: entryProgress ? 0 : (contentY || 0),
           opacity: contentOpacity || 1,
           rotateX: stageTiltRotateX,
           rotateY: stageTiltRotateY,
           transformStyle: 'preserve-3d',
         }}
-        className="relative z-10 max-w-7xl w-full mx-auto px-6 sm:px-12 lg:px-16 py-8 sm:py-12 flex flex-col justify-between min-h-[580px] lg:min-h-[640px] pointer-events-none"
+        className="relative z-10 max-w-7xl w-full mx-auto px-6 sm:px-12 lg:px-16 pt-16 sm:pt-20 lg:pt-24 pb-8 sm:pb-12 flex flex-col justify-center min-h-[580px] lg:min-h-[640px] pointer-events-none"
       >
         {/* Top & Middle Grid: Left Text Column + Center 3D Interactive Kernel */}
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-8 my-auto [transform-style:preserve-3d]">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-8 my-auto translate-y-5 sm:translate-y-7 lg:translate-y-9 [transform-style:preserve-3d]">
           {/* LEFT COLUMN: HERO HEADLINE, DESCRIPTION & LEARN MORE (SUBDUED TILT FOR READABILITY) */}
           <motion.div
             id="products-left-column"
             style={{
               x: textDisplaceX,
-              y: textDisplaceY,
+              y: combinedTextColY,
+              opacity: combinedTextColOpacity,
               rotateX: textTiltRotateX,
               rotateY: textTiltRotateY,
             }}
@@ -204,32 +503,55 @@ export function PlaceholderSection({
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentProduct.id}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                initial="hidden"
+                animate={isRevealed ? 'visible' : 'hidden'}
+                exit="exit"
               >
                 {/* Brand & Product Headline with enhanced shadow and 3D depth */}
                 <h2
                   id="product-section-headline"
-                  className="font-display font-black text-3xl sm:text-5xl md:text-6xl lg:text-[3.8rem] xl:text-[4.4rem] tracking-tight uppercase text-white leading-[0.94] drop-shadow-[0_15px_35px_rgba(0,0,0,0.9)]"
+                  className="font-display font-black text-3xl sm:text-5xl md:text-6xl lg:text-[3.8rem] xl:text-[4.4rem] tracking-tight uppercase text-white leading-[0.94] drop-shadow-[0_15px_35px_rgba(0,0,0,0.9)] select-none"
                 >
-                  <span className="block drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">{currentProduct.brand}</span>
-                  <span className="block mt-1 sm:mt-2 text-white drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]">
-                    {currentProduct.name}
-                  </span>
+                  <motion.span
+                    variants={productHeadlineVariants}
+                    className="block drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] will-change-[filter,opacity,transform]"
+                  >
+                    <LiquidPullText
+                      text={currentProduct.brand}
+                      maxPull={1}
+                      maxBlur={5}
+                      radius={120}
+                      lerpFactor={0.12}
+                    />
+                  </motion.span>
+                  <motion.span
+                    variants={productHeadlineVariants}
+                    className="block mt-1 sm:mt-2 text-white drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] origin-left will-change-[filter,opacity,transform]"
+                  >
+                    <LiquidPullText
+                      text={currentProduct.name}
+                      maxPull={1}
+                      maxBlur={5}
+                      radius={120}
+                      lerpFactor={0.12}
+                    />
+                  </motion.span>
                 </h2>
 
                 {/* Body Paragraph */}
-                <p
+                <motion.p
                   id="product-section-description"
-                  className="mt-5 sm:mt-7 text-xs sm:text-sm md:text-[15px] lg:text-[16px] font-normal text-zinc-200/90 leading-relaxed max-w-xl drop-shadow-[0_3px_10px_rgba(0,0,0,0.85)]"
+                  variants={productDescVariants}
+                  className="mt-5 sm:mt-7 text-xs sm:text-sm md:text-[15px] lg:text-[16px] font-normal text-zinc-200/90 leading-relaxed max-w-xl drop-shadow-[0_3px_10px_rgba(0,0,0,0.85)] will-change-[filter,opacity,transform] select-none"
                 >
                   {currentProduct.description}
-                </p>
+                </motion.p>
 
                 {/* LEARN MORE Action Link */}
-                <div className="mt-6 sm:mt-8">
+                <motion.div
+                  variants={productCtaVariants}
+                  className="mt-6 sm:mt-8 will-change-[filter,opacity,transform]"
+                >
                   <button
                     id="product-learn-more-btn"
                     onClick={() => setIsLearnMoreOpen(true)}
@@ -238,21 +560,27 @@ export function PlaceholderSection({
                     <span>LEARN MORE</span>
                     <ChevronRight className="w-4 h-4 text-white/70 group-hover:text-amber-300 group-hover:translate-x-1.5 transition-all duration-200" />
                   </button>
-                </div>
+                </motion.div>
               </motion.div>
             </AnimatePresence>
           </motion.div>
 
           {/* CENTER / RIGHT COLUMN: 3D INTERACTIVE KERNEL & ORBIT RADAR */}
-          <div className="w-full lg:w-[52%] xl:w-[54%] relative flex flex-col items-center justify-center min-h-[360px] sm:min-h-[440px] lg:min-h-[480px] z-20 [transform-style:preserve-3d]">
+          <motion.div
+            style={{
+              y: combinedProductStageY,
+              opacity: combinedProductStageOpacity,
+            }}
+            className="w-full lg:w-[52%] xl:w-[54%] relative flex flex-col items-center justify-center min-h-[360px] sm:min-h-[440px] lg:min-h-[480px] z-20 [transform-style:preserve-3d]"
+          >
             {/* Top Micro Label: DRAG KERNEL TO DISCOVER */}
             <motion.div
               style={{
                 x: textDisplaceX,
+                y: combinedPromptY,
+                opacity: combinedPromptOpacity,
               }}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center mb-2 z-30 select-none pointer-events-none [transform:translateZ(25px)]"
+              className="text-center mb-2 z-30 select-none pointer-events-none [transform:translateZ(25px)] will-change-transform"
             >
               <span className="text-[11px] sm:text-[12px] font-bold uppercase tracking-[0.28em] text-white/90 drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
                 DRAG KERNEL TO DISCOVER
@@ -267,13 +595,15 @@ export function PlaceholderSection({
                 if (e.touches[0]) handlePointerDown(e.touches[0].clientX, e.touches[0].clientY);
               }}
             >
-              {/* Backlight Ambient Glow with 3D depth */}
-              <div
-                className="absolute inset-0 rounded-full pointer-events-none [transform:translateZ(-10px)]"
+              {/* Backlight Ambient Glow with 3D depth and radiant expansion */}
+              <motion.div
                 style={{
+                  scale: combinedGlowScale,
+                  opacity: combinedGlowOpacity,
                   background:
                     'radial-gradient(ellipse 60% 65% at 55% 45%, rgba(245, 158, 11, 0.32) 0%, rgba(16, 185, 129, 0.16) 40%, transparent 70%)',
                 }}
+                className="absolute inset-0 rounded-full pointer-events-none [transform:translateZ(-10px)] origin-center will-change-transform"
               />
 
               {/* Elliptical Dashed Orbit Ring with Tracking Nodes and 3D dynamic tilt */}
@@ -281,8 +611,11 @@ export function PlaceholderSection({
                 style={{
                   rotateX: orbitTiltX,
                   rotateY: orbitTiltY,
+                  scale: combinedOrbitScale,
+                  opacity: combinedOrbitOpacity,
+                  rotateZ: combinedOrbitRotateZ,
                 }}
-                className="absolute inset-0 w-full h-full pointer-events-none z-10 [transform:translateZ(15px)] [transform-style:preserve-3d]"
+                className="absolute inset-0 w-full h-full pointer-events-none z-10 [transform:translateZ(15px)] [transform-style:preserve-3d] origin-center will-change-transform"
               >
                 <svg
                   viewBox="0 0 500 500"
@@ -328,11 +661,14 @@ export function PlaceholderSection({
               {/* 3D ROTATABLE KERNEL MESH CONTAINER WITH INTEGRATED TILT & DRAG */}
               <motion.div
                 style={{
-                  rotateY: useTransform(kernelTiltY, (val) => val + kernelDragRotationY),
-                  rotateX: useTransform(kernelTiltX, (val) => val + kernelDragRotationX),
+                  rotateY: useTransform(combinedKernelRotateY, (val) => val + kernelDragRotationY),
+                  rotateX: useTransform(combinedKernelRotateX, (val) => val + kernelDragRotationX),
+                  y: combinedKernelY,
+                  scale: combinedKernelScale,
+                  opacity: combinedKernelOpacity,
                   transformStyle: 'preserve-3d',
                 }}
-                className="relative w-[210px] sm:w-[260px] md:w-[290px] h-[280px] sm:h-[350px] md:h-[390px] flex items-center justify-center select-none [transform:translateZ(40px)]"
+                className="relative w-[210px] sm:w-[260px] md:w-[290px] h-[280px] sm:h-[350px] md:h-[390px] flex items-center justify-center select-none [transform:translateZ(40px)] origin-center will-change-transform"
               >
                 {/* Photorealistic SVG Kernel Silhouette & Lighting */}
                 <svg
@@ -423,8 +759,12 @@ export function PlaceholderSection({
                 </svg>
 
                 {/* CONCENTRIC RADAR TARGET FOCAL POINT WITH 3D POP */}
-                <div
-                  className="absolute top-[52%] left-[49%] -translate-x-1/2 -translate-y-1/2 z-30 cursor-pointer pointer-events-auto group [transform:translateZ(20px)]"
+                <motion.div
+                  style={{
+                    scale: combinedHotspotScale,
+                    opacity: combinedHotspotOpacity,
+                  }}
+                  className="absolute top-[52%] left-[49%] -translate-x-1/2 -translate-y-1/2 z-30 cursor-pointer pointer-events-auto group [transform:translateZ(20px)] origin-center will-change-transform"
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsHotspotOpen(true);
@@ -442,44 +782,11 @@ export function PlaceholderSection({
                     {/* Solid White Center Core Dot */}
                     <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,1)] group-hover:scale-125 transition-transform duration-200" />
                   </div>
-                </div>
+                </motion.div>
               </motion.div>
             </div>
-          </div>
+          </motion.div>
         </div>
-
-        {/* =========================================================================
-            BOTTOM CAROUSEL CONTROLS: CIRCULAR NUMBERED PILLS (1, 2, 3) (3D Z-DEPTH)
-            ========================================================================= */}
-        <motion.div
-          style={{
-            x: textDisplaceX,
-          }}
-          className="w-full flex items-center justify-center mt-4 sm:mt-6 z-30 pointer-events-auto [transform:translateZ(30px)]"
-        >
-          <div className="flex items-center gap-5 sm:gap-7" role="tablist" aria-label="Pioneer Products">
-            {PRODUCTS.map((prod, index) => {
-              const isActive = index === selectedProductIndex;
-              return (
-                <button
-                  key={prod.id}
-                  id={`product-carousel-btn-${prod.id}`}
-                  onClick={() => setSelectedProductIndex(index)}
-                  className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center font-display font-bold text-base sm:text-xl transition-all duration-300 cursor-pointer focus:outline-none ${
-                    isActive
-                      ? 'border-2 border-white bg-black/40 text-white shadow-[0_0_25px_rgba(255,255,255,0.35)] scale-105'
-                      : 'border border-white/30 bg-black/20 text-white/50 hover:border-white/70 hover:text-white/80 hover:bg-black/35'
-                  }`}
-                  role="tab"
-                  aria-selected={isActive}
-                  aria-label={`Select ${prod.name}`}
-                >
-                  <span>{prod.id}</span>
-                </button>
-              );
-            })}
-          </div>
-        </motion.div>
       </motion.div>
 
       {/* =========================================================================
