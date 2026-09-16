@@ -41,13 +41,13 @@ export function GeneticLibraryModal({ isOpen, onClose }: GeneticLibraryModalProp
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 20 }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full max-w-3xl bg-[#031109]/95 border border-emerald-500/30 rounded-2xl p-6 sm:p-8 text-white shadow-[0_24px_70px_rgba(0,0,0,0.9)] overflow-hidden max-h-[90vh] flex flex-col pointer-events-auto"
+            className="relative w-full max-w-3xl bg-[#0a0a0a]/95 border border-white/30 rounded-2xl p-6 sm:p-8 text-white shadow-[0_24px_70px_rgba(0,0,0,0.9)] overflow-hidden max-h-[90vh] flex flex-col pointer-events-auto"
           >
             {/* Background Ambient Radial Glow */}
             <div
               className="absolute -top-32 -right-32 w-80 h-80 rounded-full pointer-events-none opacity-30"
               style={{
-                background: 'radial-gradient(circle, rgba(16,185,129,0.45) 0%, transparent 70%)',
+                background: 'radial-gradient(circle, rgba(255,255,255,0.20) 0%, transparent 70%)',
               }}
               aria-hidden="true"
             />
@@ -56,7 +56,7 @@ export function GeneticLibraryModal({ isOpen, onClose }: GeneticLibraryModalProp
             <button
               id="close-genetic-library-modal-btn"
               onClick={onClose}
-              className="absolute top-5 right-5 p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+              className="absolute top-5 right-5 p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/50"
               aria-label="Close Genetic Library modal"
             >
               <X className="w-5 h-5" />
@@ -65,8 +65,8 @@ export function GeneticLibraryModal({ isOpen, onClose }: GeneticLibraryModalProp
             {/* Header */}
             <div className="pr-12">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                <span className="text-[11px] font-mono uppercase tracking-[0.25em] text-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-white animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                <span className="text-[11px] font-mono uppercase tracking-[0.25em] text-white">
                   Pioneer® Research & Development
                 </span>
               </div>
@@ -84,7 +84,7 @@ export function GeneticLibraryModal({ isOpen, onClose }: GeneticLibraryModalProp
             {/* Metrics Overview */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 my-6 py-4 border-y border-white/10">
               <div className="bg-white/5 rounded-lg p-3 border border-white/5">
-                <div className="text-[10px] font-mono uppercase tracking-widest text-emerald-400/80">
+                <div className="text-[10px] font-mono uppercase tracking-widest text-white/80">
                   Data Points
                 </div>
                 <div className="font-display font-bold text-xl sm:text-2xl text-white mt-1">
@@ -94,7 +94,7 @@ export function GeneticLibraryModal({ isOpen, onClose }: GeneticLibraryModalProp
               </div>
 
               <div className="bg-white/5 rounded-lg p-3 border border-white/5">
-                <div className="text-[10px] font-mono uppercase tracking-widest text-emerald-400/80">
+                <div className="text-[10px] font-mono uppercase tracking-widest text-white/80">
                   Trait Stacks
                 </div>
                 <div className="font-display font-bold text-xl sm:text-2xl text-white mt-1">
@@ -104,7 +104,7 @@ export function GeneticLibraryModal({ isOpen, onClose }: GeneticLibraryModalProp
               </div>
 
               <div className="bg-white/5 rounded-lg p-3 border border-white/5">
-                <div className="text-[10px] font-mono uppercase tracking-widest text-emerald-400/80">
+                <div className="text-[10px] font-mono uppercase tracking-widest text-white/80">
                   Elite Inbreds
                 </div>
                 <div className="font-display font-bold text-xl sm:text-2xl text-white mt-1">
@@ -114,7 +114,7 @@ export function GeneticLibraryModal({ isOpen, onClose }: GeneticLibraryModalProp
               </div>
 
               <div className="bg-white/5 rounded-lg p-3 border border-white/5">
-                <div className="text-[10px] font-mono uppercase tracking-widest text-emerald-400/80">
+                <div className="text-[10px] font-mono uppercase tracking-widest text-white/80">
                   Purity Rate
                 </div>
                 <div className="font-display font-bold text-xl sm:text-2xl text-white mt-1">
@@ -126,8 +126,8 @@ export function GeneticLibraryModal({ isOpen, onClose }: GeneticLibraryModalProp
 
             {/* Trait Architecture List */}
             <div className="space-y-3 overflow-y-auto pr-1">
-              <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/20">
-                <Dna className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-zinc-950/30 border border-white/20">
+                <Dna className="w-5 h-5 text-white flex-shrink-0 mt-0.5" />
                 <div>
                   <h4 className="font-semibold text-sm text-white">
                     Predictive Genomic Selection
@@ -138,8 +138,8 @@ export function GeneticLibraryModal({ isOpen, onClose }: GeneticLibraryModalProp
                 </div>
               </div>
 
-              <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/20">
-                <ShieldCheck className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-zinc-950/30 border border-white/20">
+                <ShieldCheck className="w-5 h-5 text-white flex-shrink-0 mt-0.5" />
                 <div>
                   <h4 className="font-semibold text-sm text-white">
                     Optimized Root & Canopy Architecture
@@ -150,8 +150,8 @@ export function GeneticLibraryModal({ isOpen, onClose }: GeneticLibraryModalProp
                 </div>
               </div>
 
-              <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/20">
-                <Sparkles className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-zinc-950/30 border border-white/20">
+                <Sparkles className="w-5 h-5 text-white flex-shrink-0 mt-0.5" />
                 <div>
                   <h4 className="font-semibold text-sm text-white">
                     Broad-Spectrum Pest Resistance
@@ -171,7 +171,7 @@ export function GeneticLibraryModal({ isOpen, onClose }: GeneticLibraryModalProp
               </span>
               <button
                 onClick={onClose}
-                className="px-5 py-2 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-xs transition-colors cursor-pointer"
+                className="px-5 py-2 rounded-full bg-white hover:bg-white text-black font-semibold text-xs transition-colors cursor-pointer"
               >
                 Close Viewer
               </button>

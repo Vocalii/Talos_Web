@@ -94,6 +94,17 @@ const HorizontalSlide: React.FC<HorizontalSlideProps> = ({
     return clamped * 5;
   });
 
+  // Phase in/out with a blur, matching the same cinematic entrance style
+  // used on the Hero/Contenders/Qrome headlines as you scroll a slide into
+  // and out of focus.
+  const slideBlurPx = useTransform(localProgress, (p: number) => {
+    const dist = Math.abs(p - targetP) / step;
+    if (dist <= 0.05) return 0;
+    if (dist >= 1.2) return 14;
+    return (dist / 1.2) * 14;
+  });
+  const slideFilter = useTransform(slideBlurPx, (b) => `blur(${b}px)`);
+
   return (
     <motion.div
       ref={slideRef}
@@ -103,14 +114,20 @@ const HorizontalSlide: React.FC<HorizontalSlideProps> = ({
         scale: slideScale,
         y: slideY,
         rotateY: slideRotateY,
+        filter: slideFilter,
         transformPerspective: 1200,
       }}
       onClick={onSelect}
-      className="w-[86vw] sm:w-[76vw] md:w-[68vw] lg:w-[60vw] max-w-4xl flex-shrink-0 flex flex-col justify-center text-left py-6 will-change-transform cursor-pointer select-none"
+      className="w-[86vw] sm:w-[76vw] md:w-[68vw] lg:w-[60vw] max-w-4xl flex-shrink-0 flex flex-col items-center justify-center text-center py-6 will-change-transform cursor-pointer select-none"
     >
+      {/* Coming Soon eyebrow label */}
+      <span className="font-display text-[10px] sm:text-[11px] font-light uppercase tracking-[0.4em] text-white/40 mb-4">
+        Coming Soon
+      </span>
+
       {/* Prominent High-Impact Headline — Pure Typography */}
       <h3
-        className="font-display font-black text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-[4.75rem] tracking-tight uppercase leading-[1.04] text-white drop-shadow-[0_12px_36px_rgba(0,0,0,0.95)]"
+        className="font-display font-medium text-xl sm:text-2xl md:text-3xl lg:text-4xl tracking-wide uppercase leading-[1.15] text-white drop-shadow-[0_12px_36px_rgba(0,0,0,0.95)]"
       >
         {slide.headline}
       </h3>

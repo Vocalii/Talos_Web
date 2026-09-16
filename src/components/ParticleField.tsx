@@ -71,14 +71,13 @@ export function ParticleField() {
     handleResize();
     window.addEventListener('resize', handleResize);
 
-    // Color palettes matching the Pioneer Corn visual identity:
-    // Glowing golden pollen, rich amber seed dust, emerald leaf tones, and subtle mint bokeh
+    // Emerald accent bokeh, matching the Talos app's accent green.
     const palette = [
-      { base: 'rgba(251, 191, 36, ', glow: 'rgba(245, 158, 11, 0.4)' }, // Gold
-      { base: 'rgba(245, 158, 11, ', glow: 'rgba(217, 119, 6, 0.35)' },  // Warm amber
-      { base: 'rgba(52, 211, 153, ', glow: 'rgba(16, 185, 129, 0.35)' }, // Emerald
-      { base: 'rgba(110, 231, 183, ', glow: 'rgba(52, 211, 153, 0.3)' }, // Soft mint
-      { base: 'rgba(253, 230, 138, ', glow: 'rgba(251, 191, 36, 0.45)' },// Pale yellow
+      { base: 'rgba(34, 197, 94, ', glow: 'rgba(34, 197, 94, 0.4)' },
+      { base: 'rgba(74, 222, 128, ', glow: 'rgba(74, 222, 128, 0.35)' },
+      { base: 'rgba(16, 150, 72, ', glow: 'rgba(16, 150, 72, 0.35)' },
+      { base: 'rgba(134, 239, 172, ', glow: 'rgba(110, 231, 183, 0.3)' },
+      { base: 'rgba(220, 252, 231, ', glow: 'rgba(74, 222, 128, 0.45)' },
     ];
 
     // Well-balanced particle count: rich enough to create ambient depth, clean enough not to clutter (~36-44 total)
@@ -120,7 +119,7 @@ export function ParticleField() {
         if (sparks.length > 30) sparks.shift();
         const angle = Math.random() * Math.PI * 2;
         const speed = Math.random() * 1.4 + 0.3;
-        const color = Math.random() > 0.4 ? 'rgba(251, 191, 36, ' : 'rgba(52, 211, 153, ';
+        const color = Math.random() > 0.4 ? 'rgba(74, 222, 128, ' : 'rgba(34, 197, 94, ';
         sparks.push({
           x: x + (Math.random() - 0.5) * 10,
           y: y + (Math.random() - 0.5) * 10,
@@ -222,8 +221,8 @@ export function ParticleField() {
           mouse.y,
           mouse.radius * 1.3
         );
-        haloGrad.addColorStop(0, 'rgba(245, 158, 11, 0.04)');
-        haloGrad.addColorStop(0.5, 'rgba(16, 185, 129, 0.02)');
+        haloGrad.addColorStop(0, 'rgba(34, 197, 94, 0.05)');
+        haloGrad.addColorStop(0.5, 'rgba(34, 197, 94, 0.02)');
         haloGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
         ctx.fillStyle = haloGrad;
         ctx.beginPath();
@@ -321,7 +320,7 @@ export function ParticleField() {
               );
               if (mouseDistToMidpoint < mouse.radius * 1.1) {
                 const lineAlpha = (1 - pDistSq / 6000) * 0.15 * (1 - mouseDistToMidpoint / (mouse.radius * 1.1));
-                ctx.strokeStyle = `rgba(251, 191, 36, ${lineAlpha})`;
+                ctx.strokeStyle = `rgba(74, 222, 128, ${lineAlpha})`;
                 ctx.lineWidth = 0.75;
                 ctx.beginPath();
                 ctx.moveTo(p.x, p.y);

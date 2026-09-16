@@ -13,18 +13,18 @@ export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelP
   const getCategoryIcon = (category: CornSeedTrait['category']) => {
     switch (category) {
       case 'Drought & Climate':
-        return <Droplets className="w-4 h-4 text-amber-400" />;
+        return <Droplets className="w-4 h-4 text-amber-300" />;
       case 'Disease & Pest Defense':
         return <ShieldCheck className="w-4 h-4 text-emerald-400" />;
       case 'Nutrient Efficiency':
         return <Zap className="w-4 h-4 text-teal-400" />;
       case 'Germination & Vigor':
-        return <Sprout className="w-4 h-4 text-emerald-300" />;
+        return <Sprout className="w-4 h-4 text-zinc-200" />;
       case 'Kernel Quality':
-        return <Sparkles className="w-4 h-4 text-yellow-300" />;
+        return <Sparkles className="w-4 h-4 text-purple-300" />;
       case 'Yield & Architecture':
       default:
-        return <Dna className="w-4 h-4 text-emerald-400" />;
+        return <Dna className="w-4 h-4 text-red-400" />;
     }
   };
 
@@ -41,12 +41,12 @@ export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelP
         };
       case 'Disease & Pest Defense':
         return {
-          badgeBg: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]',
+          badgeBg: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300 shadow-[0_0_12px_rgba(34,197,94,0.2)]',
           metricBg: 'bg-emerald-400/15 border-emerald-400/40 text-emerald-200',
-          glow: 'rgba(16, 185, 129, 0.35)',
+          glow: 'rgba(34, 197, 94, 0.35)',
           border: 'border-emerald-500/40',
-          accent: '#10b981',
-          scanColor: 'rgba(16, 185, 129, 0.8)',
+          accent: '#22c55e',
+          scanColor: 'rgba(34, 197, 94, 0.8)',
         };
       case 'Nutrient Efficiency':
         return {
@@ -59,23 +59,23 @@ export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelP
         };
       case 'Kernel Quality':
         return {
-          badgeBg: 'bg-yellow-500/20 border-yellow-500/40 text-yellow-300 shadow-[0_0_12px_rgba(234,179,8,0.2)]',
-          metricBg: 'bg-yellow-400/15 border-yellow-400/40 text-yellow-200',
-          glow: 'rgba(234, 179, 8, 0.35)',
-          border: 'border-yellow-500/40',
-          accent: '#eab308',
-          scanColor: 'rgba(234, 179, 8, 0.8)',
+          badgeBg: 'bg-purple-500/20 border-purple-500/40 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.2)]',
+          metricBg: 'bg-purple-400/15 border-purple-400/40 text-purple-200',
+          glow: 'rgba(168, 85, 247, 0.35)',
+          border: 'border-purple-500/40',
+          accent: '#a855f7',
+          scanColor: 'rgba(168, 85, 247, 0.8)',
         };
       case 'Germination & Vigor':
       case 'Yield & Architecture':
       default:
         return {
-          badgeBg: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]',
-          metricBg: 'bg-emerald-400/15 border-emerald-400/40 text-emerald-200',
-          glow: 'rgba(16, 185, 129, 0.35)',
-          border: 'border-emerald-500/40',
-          accent: '#10b981',
-          scanColor: 'rgba(16, 185, 129, 0.8)',
+          badgeBg: 'bg-red-500/20 border-red-500/40 text-red-300 shadow-[0_0_12px_rgba(239,68,68,0.2)]',
+          metricBg: 'bg-red-400/15 border-red-400/40 text-red-200',
+          glow: 'rgba(239, 68, 68, 0.35)',
+          border: 'border-red-500/40',
+          accent: '#ef4444',
+          scanColor: 'rgba(239, 68, 68, 0.8)',
         };
     }
   };
@@ -135,7 +135,7 @@ export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelP
         style={{
           boxShadow: `0 30px 60px -12px rgba(0, 0, 0, 0.95), 0 0 45px -5px ${theme.glow}`,
         }}
-        className={`w-full rounded-2xl backdrop-blur-2xl bg-[#030d07]/92 border ${theme.border} p-6 sm:p-7 text-left shadow-2xl relative overflow-hidden`}
+        className={`w-full rounded-2xl backdrop-blur-2xl bg-[#0a0a0a]/92 border ${theme.border} p-6 sm:p-7 text-left shadow-2xl relative overflow-hidden`}
       >
         {/* Cinematic Laser Sweep Line across the top rim */}
         <motion.div
@@ -168,7 +168,7 @@ export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelP
 
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 text-xs font-mono text-slate-300 bg-black/60 border border-white/10 px-2.5 py-1 rounded-md shadow-inner">
-              <Activity className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+              <Activity className="w-3.5 h-3.5 text-white animate-pulse" />
               <span>{trait.chromosome}</span>
             </div>
 
@@ -194,11 +194,11 @@ export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelP
 
         {/* Gene Locus Tag and Strand Information */}
         <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-2.5 mb-4 relative z-10">
-          <span className="text-xs font-mono text-emerald-300 font-semibold bg-emerald-950/80 border border-emerald-500/35 px-2.5 py-0.5 rounded shadow-sm">
+          <span className="text-xs font-mono text-zinc-200 font-semibold bg-zinc-950/80 border border-white/35 px-2.5 py-0.5 rounded shadow-sm">
             LOCUS: {trait.geneLocus}
           </span>
           <span className="text-xs text-slate-400 font-mono flex items-center gap-1 bg-black/40 px-2 py-0.5 rounded border border-white/5">
-            <Cpu className="w-3 h-3 text-emerald-400/80" />
+            <Cpu className="w-3 h-3 text-white/80" />
             {trait.strand}
           </span>
         </motion.div>
@@ -211,7 +211,7 @@ export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelP
           <span className="text-sm font-medium text-slate-100">
             {trait.benefit}
           </span>
-          <span className="text-sm font-bold font-mono tracking-tight text-white ml-3 whitespace-nowrap bg-emerald-950/90 px-2.5 py-1 rounded-lg border border-emerald-400/35 shadow-inner">
+          <span className="text-sm font-bold font-mono tracking-tight text-white ml-3 whitespace-nowrap bg-zinc-950/90 px-2.5 py-1 rounded-lg border border-white/35 shadow-inner">
             {trait.keyMetric}
           </span>
         </motion.div>
@@ -228,7 +228,7 @@ export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelP
         >
           <div className="flex items-center gap-1.5">
             <span className="text-slate-500">EXPRESSION:</span>
-            <span className="text-emerald-300 font-semibold">{trait.expressionLevel}</span>
+            <span className="text-zinc-200 font-semibold">{trait.expressionLevel}</span>
           </div>
           <div className="flex items-center gap-1 text-[11px] text-slate-500">
             <span>Reclick or Esc to deselect</span>

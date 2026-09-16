@@ -1,0 +1,35 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "gradient-text",
+        "value": "*",
+        "files": [
+          "src/index.css"
+        ],
+        "createdAt": "2026-09-16T02:38:59.955Z",
+        "reason": "user directed: matching Talos app's own existing .text-gradient utility (Documents/Talos/src/index.css), verbatim reuse of an established design system, not a new decorative choice"
+      },
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "files": [
+          "src/index.css"
+        ],
+        "createdAt": "2026-09-16T02:57:13.020Z",
+        "reason": "user directed: matching Talos app's own real design system (Documents/Talos), Inter+Outfit are the app's established fonts, not a default AI choice"
+      },
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-09-16T02:57:13.068Z",
+        "reason": "user directed: matching Talos app's own real design system (Documents/Talos), Inter+Outfit are the app's established fonts, not a default AI choice"
+      }
+    ]
+  }
+}

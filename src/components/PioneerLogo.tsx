@@ -3,7 +3,7 @@ export function PioneerLogo({ className = '' }: { className?: string }) {
     <div id="pioneer-brand-logo" className={`flex items-center gap-3 select-none group cursor-pointer ${className}`}>
       {/* Pioneer Emblem */}
       <svg
-        className="w-8 h-8 md:w-9 md:h-9 text-white transition-transform duration-300 group-hover:scale-105"
+        className="w-6 h-6 md:w-7 md:h-7 text-white transition-transform duration-300 group-hover:scale-105"
         viewBox="0 0 100 100"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -60,8 +60,8 @@ export function PioneerLogo({ className = '' }: { className?: string }) {
       </svg>
 
       {/* Pioneer Wordmark */}
-      <span className="font-display font-black text-2xl md:text-3xl tracking-wider text-white uppercase">
-        TALOS
+      <span className="font-display font-medium text-base md:text-lg tracking-[0.3em] text-white uppercase">
+        TΛLOS
       </span>
     </div>
   );

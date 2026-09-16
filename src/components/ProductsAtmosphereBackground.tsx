@@ -11,10 +11,11 @@ interface ProductsAtmosphereBackgroundProps {
   flip?: boolean;
 }
 
-// The exact same atmospheric background (warm sunset horizon + deep forest
-// emerald base) used across the whole "Qrome Products" story beat — the
-// static Qrome content and the Agronomic Insights horizontal-scroll content
-// both render this so the two share one continuous background with no seam.
+// The exact same atmospheric background (neutral gray glow, matching the
+// Talos app's own RadialGlow recipe) used across the whole "Qrome Products"
+// story beat — the static Qrome content and the Agronomic Insights
+// horizontal-scroll content both render this so the two share one
+// continuous background with no seam.
 export function ProductsAtmosphereBackground({
   mouseX: externalMouseX,
   mouseY: externalMouseY,
@@ -49,46 +50,46 @@ export function ProductsAtmosphereBackground({
       className="absolute -inset-[8%] pointer-events-none z-0 overflow-hidden"
       aria-hidden="true"
     >
-      {/* Top-Right Glowing Amber/Sunset Cloud Radiance with enhanced parallax */}
+      {/* Top-Right Neutral Glow Bloom with enhanced parallax */}
       <motion.div
         style={{
           x: glowDisplaceX,
           y: glowDisplaceY,
           background:
-            'radial-gradient(ellipse 75% 60% at 75% 15%, rgba(245, 120, 25, 0.65) 0%, rgba(200, 85, 20, 0.45) 30%, rgba(120, 50, 15, 0.25) 60%, transparent 85%)',
+            'radial-gradient(ellipse 75% 60% at 75% 15%, rgba(160, 160, 160, 0.30) 0%, rgba(120, 120, 120, 0.18) 30%, rgba(80, 80, 80, 0.10) 60%, transparent 85%)',
         }}
         className="absolute -top-[12%] -right-[8%] w-[90vw] h-[80vh] pointer-events-none"
       />
 
-      {/* Ambient Warm Golden Ray Flare */}
+      {/* Ambient Soft Ray Flare */}
       <motion.div
         style={{
           x: glowDisplaceX,
           y: glowDisplaceY,
           background:
-            'radial-gradient(circle at 60% 25%, rgba(251, 191, 36, 0.40) 0%, rgba(217, 119, 6, 0.22) 45%, transparent 75%)',
+            'radial-gradient(circle at 60% 25%, rgba(200, 200, 200, 0.18) 0%, rgba(140, 140, 140, 0.10) 45%, transparent 75%)',
         }}
         className="absolute top-0 right-[12%] w-[50vw] h-[55vh] pointer-events-none opacity-80"
       />
 
-      {/* Dynamic Specular Sunlight Hotspot tracking cursor */}
+      {/* Dynamic Specular Highlight tracking cursor */}
       <motion.div
         style={{
           background: useTransform(
             [lightReflectionX, lightReflectionY],
             ([lx, ly]) =>
-              `radial-gradient(circle at ${lx} ${ly}, rgba(251, 191, 36, 0.18) 0%, rgba(245, 120, 25, 0.08) 35%, transparent 70%)`
+              `radial-gradient(circle at ${lx} ${ly}, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.04) 35%, transparent 70%)`
           ),
         }}
         className="absolute inset-0 pointer-events-none"
       />
 
-      {/* Deep Forest Emerald / Velvet Obsidian Base */}
+      {/* Neutral Dark Base (matches the Talos app's near-black #050505) */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            'radial-gradient(circle at 25% 65%, rgba(6, 32, 18, 0.88) 0%, rgba(2, 18, 10, 0.95) 55%, #010804 100%)',
+            'radial-gradient(circle at 25% 65%, rgba(30, 30, 30, 0.88) 0%, rgba(12, 12, 12, 0.95) 55%, #050505 100%)',
         }}
       />
 
@@ -97,7 +98,7 @@ export function ProductsAtmosphereBackground({
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            'radial-gradient(circle at 50% 50%, transparent 45%, rgba(1, 6, 3, 0.70) 90%, #010603 100%)',
+            'radial-gradient(circle at 50% 50%, transparent 45%, rgba(5, 5, 5, 0.70) 90%, #050505 100%)',
         }}
       />
 

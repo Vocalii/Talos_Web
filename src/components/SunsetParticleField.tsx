@@ -68,15 +68,15 @@ export function SunsetParticleField({ mouseX: motionMouseX, mouseY: motionMouseY
     handleResize();
     window.addEventListener('resize', handleResize);
 
-    // Warm Sunset & Agronomic Bio-palette:
-    // Glowing golden pollen, sunset amber embers, warm orange motes, and subtle emerald chlorophyll sparkles
+    // Neutral drifting motes, matching the Talos app's monochrome palette
+    // (varying only in brightness, not hue).
     const colorPalette = [
-      { base: 'rgba(251, 191, 36, ', glow: 'rgba(245, 158, 11, 0.55)' },  // Golden Pollen
-      { base: 'rgba(245, 158, 11, ', glow: 'rgba(217, 119, 6, 0.45)' },   // Warm Amber
-      { base: 'rgba(249, 115, 22, ', glow: 'rgba(234, 88, 12, 0.50)' },   // Sunset Orange Flare
-      { base: 'rgba(253, 230, 138, ', glow: 'rgba(251, 191, 36, 0.65)' }, // Radiant Yellow Spark
-      { base: 'rgba(52, 211, 153, ', glow: 'rgba(16, 185, 129, 0.40)' },  // Emerald Bio-mote
-      { base: 'rgba(110, 231, 183, ', glow: 'rgba(52, 211, 153, 0.35)' }, // Mint Chlorophyll
+      { base: 'rgba(255, 255, 255, ', glow: 'rgba(255, 255, 255, 0.55)' },
+      { base: 'rgba(220, 220, 220, ', glow: 'rgba(200, 200, 200, 0.45)' },
+      { base: 'rgba(180, 180, 180, ', glow: 'rgba(160, 160, 160, 0.50)' },
+      { base: 'rgba(240, 240, 240, ', glow: 'rgba(230, 230, 230, 0.65)' },
+      { base: 'rgba(150, 150, 150, ', glow: 'rgba(130, 130, 130, 0.40)' },
+      { base: 'rgba(200, 200, 200, ', glow: 'rgba(180, 180, 180, 0.35)' },
     ];
 
     // Create layered particles with 3D Z-depth

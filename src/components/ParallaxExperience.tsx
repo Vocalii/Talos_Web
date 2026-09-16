@@ -4,7 +4,6 @@ import { ChevronDown, Check, X } from 'lucide-react';
 import { PioneerLogo } from './PioneerLogo';
 import { ParticleField } from './ParticleField';
 import { ConstellationCanvas } from './ConstellationCanvas';
-import { NavDrawer } from './NavDrawer';
 import { PlaceholderSection } from './PlaceholderSection';
 import { HorizontalTextScrollSection } from './HorizontalTextScrollSection';
 import { ProductsAtmosphereBackground } from './ProductsAtmosphereBackground';
@@ -152,6 +151,39 @@ const featureItemVariants = {
   },
 };
 
+// Roughly matches how long the headline/paragraph/feature-list stagger
+// sequence above takes to visibly settle, so the Explore The Library button
+// only starts phasing in once that text has already appeared — not at the
+// same moment. Only applied on the one-time hidden -> visible entrance (see
+// exploreButtonVariants below); toggling explore mode afterward uses its own
+// separate, undelayed transition.
+const EXPLORE_BUTTON_ENTRANCE_DELAY = 1.1;
+
+const exploreButtonVariants = {
+  hidden: { opacity: 0, y: 16, scale: 0.9, filter: 'blur(16px)' },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    filter: 'blur(0px)',
+    transition: {
+      duration: 1.4,
+      delay: EXPLORE_BUTTON_ENTRANCE_DELAY,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+  exploreHidden: {
+    opacity: 0,
+    y: 0,
+    scale: 0.8,
+    filter: 'blur(8px)',
+    transition: {
+      duration: 0.45,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+};
+
 // 4-Section Scroll Track (Hero -> Computers & Simulations -> Qrome Products
 // [+ Agronomic Insights handoff within it] -> Placeholder 2).
 //
@@ -190,9 +222,9 @@ const K3 = 1.0;
 
 export function ParallaxExperience() {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [isNavOpen, setIsNavOpen] = useState(false);
   const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
   const [isExploreActive, setIsExploreActive] = useState(false);
+  const [isFeaturesExploreActive, setIsFeaturesExploreActive] = useState(false);
   const [selectedGeneticTrait, setSelectedGeneticTrait] = useState<CornSeedTrait | null>(null);
   const currentSlide = 0;
   const [isHeroRevealed, setIsHeroRevealed] = useState(true);
@@ -265,18 +297,37 @@ export function ParallaxExperience() {
     restDelta: 0.0001,
   });
 
-  // Track active section index based on scroll progress
+  // Track active section index based on scroll progress. Switches as soon as
+  // each transition's diagonal cut is actually visible, not at the full
+  // K1/HANDOFF_START boundary — matching the same 0.35 fraction already used
+  // elsewhere (isNavHidden below, sectionThreeEntryProgress) for "this
+  // section has visibly started appearing."
   useEffect(() => {
+    const section2Start = K1 + 0.35 * (K2 - K1);
     const unsubscribe = smoothProgress.on('change', (p) => {
-      if (p < K1) {
+      if (p < 0.35 * K1) {
         setActiveSectionIndex(0);
-      } else if (p < HANDOFF_START) {
+      } else if (p < section2Start) {
         setActiveSectionIndex(1);
       } else if (p < CUT3_START) {
         setActiveSectionIndex(2);
       } else {
         setActiveSectionIndex(3);
       }
+    });
+    return () => unsubscribe();
+  }, [smoothProgress]);
+
+  // Floating nav dots visibility: earlier/finer thresholds than
+  // activeSectionIndex's full section boundaries — Contenders is already
+  // visible well before K1 (Cut 1 finishes revealing it partway through
+  // [0, K1]), and Section 4 similarly starts appearing partway through Cut 3,
+  // so gating on the full K1/CUT3_START boundaries made the nav pop in late.
+  const [isNavHidden, setIsNavHidden] = useState(true);
+  useEffect(() => {
+    const unsubscribe = smoothProgress.on('change', (p) => {
+      const show = p >= 0.35 * K1 && p < CUT3_START + 0.2 * (K3 - CUT3_START);
+      setIsNavHidden(!show);
     });
     return () => unsubscribe();
   }, [smoothProgress]);
@@ -470,34 +521,6 @@ export function ParallaxExperience() {
   );
 
   // =========================================================================
-  // SCROLL-TRIGGERED REVEAL TRANSFORMS FOR FLOATING STORY NAVIGATION DOTS
-  // (Hidden in Hero & gracefully exits as user enters Section 4 Download App)
-  // =========================================================================
-  const navDotsOpacity = useTransform(
-    smoothProgress,
-    [
-      0.15 * K1,
-      0.42 * K1,
-      CUT3_START + 0.15 * (K3 - CUT3_START),
-      CUT3_START + 0.42 * (K3 - CUT3_START),
-    ],
-    [0, 1, 1, 0]
-  );
-  const navDotsX = useTransform(
-    smoothProgress,
-    [
-      0.15 * K1,
-      0.42 * K1,
-      CUT3_START + 0.15 * (K3 - CUT3_START),
-      CUT3_START + 0.42 * (K3 - CUT3_START),
-    ],
-    [40, 0, 0, 40]
-  );
-  const navDotsPointerEvents = useTransform(smoothProgress, (p) =>
-    p > 0.15 * K1 && p < CUT3_START + 0.42 * (K3 - CUT3_START) ? 'auto' : 'none'
-  );
-
-  // =========================================================================
   // SECTION 3 (PLACEHOLDER / QROME) PARALLAX DISPLACEMENTS INSIDE CUT 2
   // =========================================================================
   // Dedicated 0 -> 1 normalized entry progress for Section 3 (Qrome Products)
@@ -521,28 +544,30 @@ export function ParallaxExperience() {
   // =========================================================================
   // GLOBAL BACKGROUND GRADIENT & COLOR GRADING TRANSFORMS
   // =========================================================================
+  // Neutral near-black color grading (matching the Talos app's flat #050505
+  // background) instead of the previous emerald-to-blue hue shift.
   const globalGradTop = useTransform(
     smoothProgress,
     [0, 0.35 * K1, 0.70 * K1],
-    ['#062e1d', '#042219', '#0e141b']
+    ['#0a0a0a', '#080808', '#0c0c0c']
   );
   const globalGradMid = useTransform(
     smoothProgress,
     [0, 0.35 * K1, 0.70 * K1],
-    ['#021a10', '#021511', '#080b10']
+    ['#050505', '#040404', '#060606']
   );
   const globalGradBase = useTransform(
     smoothProgress,
     [0, 0.35 * K1, 0.70 * K1],
-    ['#010c07', '#010a08', '#030407']
+    ['#020202', '#010101', '#020202']
   );
   const globalGlowColor = useTransform(
     smoothProgress,
     [0, 0.35 * K1, 0.70 * K1],
     [
-      'rgba(16, 185, 129, 0.15)',
-      'rgba(20, 140, 115, 0.10)',
-      'rgba(56, 189, 248, 0.06)',
+      'rgba(255, 255, 255, 0.08)',
+      'rgba(255, 255, 255, 0.05)',
+      'rgba(255, 255, 255, 0.04)',
     ]
   );
 
@@ -859,6 +884,17 @@ export function ParallaxExperience() {
     smoothScrollTo(target, 1500);
   };
 
+  // Opening the "View The Features" panel always snaps to the same
+  // anchor point within Qrome Products first (same one scrollToPlaceholder
+  // settles at), so the panel appears in a consistent spot regardless of
+  // where the user happened to be scrolled to when they clicked it.
+  const handleFeaturesExploreActiveChange = (active: boolean) => {
+    if (active) {
+      scrollToPlaceholder();
+    }
+    setIsFeaturesExploreActive(active);
+  };
+
   // Smooth scroll helper: jump to a specific slide in Section 3's horizontal scroll
   const scrollToInsightsSlide = (slideIndex: number) => {
     if (!containerRef.current) return;
@@ -966,7 +1002,7 @@ export function ParallaxExperience() {
                   background: useTransform(
                     [lightX, lightY],
                     ([lx, ly]) =>
-                      `radial-gradient(circle at ${lx} ${ly}, rgba(52, 211, 153, 0.12) 0%, rgba(245, 158, 11, 0.05) 35%, transparent 70%)`
+                      `radial-gradient(circle at ${lx} ${ly}, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.04) 35%, transparent 70%)`
                   ),
                 }}
                 className="absolute inset-0 pointer-events-none"
@@ -975,7 +1011,7 @@ export function ParallaxExperience() {
 
               {/* Vignette & Atmospheric Gradients */}
               <div
-                className="absolute inset-0 bg-radial-[circle_at_50%_45%] from-transparent via-[#03150d]/40 to-[#010a05]/90 pointer-events-none"
+                className="absolute inset-0 bg-radial-[circle_at_50%_45%] from-transparent via-[#0a0a0a]/40 to-[#050505]/90 pointer-events-none"
                 aria-hidden="true"
               />
               <div
@@ -1020,7 +1056,7 @@ export function ParallaxExperience() {
                 variants={headlineLineVariants}
                 initial="hidden"
                 animate={isHeroRevealed ? 'visible' : 'hidden'}
-                className="font-display font-black text-[clamp(1.6rem,7vw,6.5rem)] whitespace-nowrap tracking-tight uppercase text-white leading-[0.9] drop-shadow-[0_12px_40px_rgba(0,0,0,0.9)] select-none will-change-[filter,opacity,transform]"
+                className="font-display font-medium text-[clamp(1.3rem,5vw,4.2rem)] whitespace-nowrap tracking-wide uppercase text-white leading-[1.08] drop-shadow-[0_12px_40px_rgba(0,0,0,0.9)] select-none will-change-[filter,opacity,transform]"
               >
                 <LiquidPullText
                   text="CALISTHENICS. REVOLUTIONIZED."
@@ -1037,7 +1073,7 @@ export function ParallaxExperience() {
                 variants={paragraphVariants}
                 initial="hidden"
                 animate={isHeroRevealed ? 'visible' : 'hidden'}
-                className="mt-4 sm:mt-6 md:mt-7 text-sm sm:text-base md:text-lg lg:text-xl font-normal text-zinc-100/85 tracking-wide max-w-2xl mx-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] px-4 select-none will-change-[filter,opacity,transform]"
+                className="mt-4 sm:mt-6 md:mt-7 text-sm sm:text-base md:text-lg font-light text-white/75 tracking-[0.04em] max-w-lg mx-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] px-4 select-none will-change-[filter,opacity,transform]"
               >
                 Master skills step by step with AI that adapts to every session
               </motion.p>
@@ -1090,7 +1126,7 @@ export function ParallaxExperience() {
                   background: useTransform(
                     [lightX, lightY, globalGlowColor],
                     ([lx, ly, glow]) =>
-                      `radial-gradient(circle at ${lx} ${ly}, ${glow} 0%, rgba(16, 185, 129, 0.02) 40%, transparent 75%)`
+                      `radial-gradient(circle at ${lx} ${ly}, ${glow} 0%, rgba(34, 197, 94, 0.05) 40%, transparent 75%)`
                   ),
                 }}
                 className="absolute inset-0 pointer-events-none"
@@ -1100,9 +1136,9 @@ export function ParallaxExperience() {
               {/* Base Atmospheric Emerald Fog */}
               <motion.div
                 style={{
-                  opacity: useTransform(smoothProgress, [0.10 * K1, 0.65 * K1], [0.85, 0.25]),
+                  opacity: useTransform(smoothProgress, [0.10 * K1, 0.65 * K1], [0.85, 0.4]),
                 }}
-                className="absolute inset-0 bg-radial-[circle_at_60%_45%] from-emerald-950/40 via-[#03150c]/80 to-[#020b06]/95 pointer-events-none"
+                className="absolute inset-0 bg-radial-[circle_at_60%_45%] from-emerald-950/45 via-[#0a120d]/80 to-[#050505]/95 pointer-events-none"
                 aria-hidden="true"
               />
 
@@ -1111,7 +1147,7 @@ export function ParallaxExperience() {
                 style={{
                   opacity: useTransform(smoothProgress, [0.35 * K1, 0.85 * K1], [0, 0.92]),
                   background:
-                    'radial-gradient(ellipse at 60% 45%, rgba(15, 23, 42, 0.45) 0%, rgba(7, 10, 15, 0.82) 50%, #030406 100%)',
+                    'radial-gradient(ellipse at 60% 45%, rgba(6, 46, 28, 0.45) 0%, rgba(5, 15, 10, 0.82) 50%, #020604 100%)',
                 }}
                 className="absolute inset-0 pointer-events-none"
                 aria-hidden="true"
@@ -1159,6 +1195,38 @@ export function ParallaxExperience() {
             </motion.div>
           </motion.div>
 
+          {/* Slow, autonomously-drifting amber glow blob — independent of mouse
+              parallax, pairs with the amber/emerald nexus-hub nodes above so
+              the atmosphere doesn't read as flat/mono. */}
+          <motion.div
+            animate={{
+              x: [0, 60, -20, 0],
+              y: [0, -40, 30, 0],
+            }}
+            transition={{
+              duration: 26,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+            className="absolute top-[15%] right-[10%] w-[36vw] h-[36vw] max-w-[520px] max-h-[520px] rounded-full pointer-events-none z-[15] opacity-70"
+            style={{
+              background:
+                'radial-gradient(circle, rgba(245, 158, 11, 0.10) 0%, rgba(245, 158, 11, 0.04) 45%, transparent 75%)',
+            }}
+            aria-hidden="true"
+          />
+
+          {/* Inset depth vignette (top inner highlight + bottom shadow),
+              matching the Talos app's own flat-gradient depth technique. */}
+          <div
+            className="absolute inset-0 pointer-events-none z-[16]"
+            style={{
+              boxShadow:
+                'inset 0 1px 0 rgba(255,255,255,0.06), inset 0 60px 100px -40px rgba(0,0,0,0.6)',
+            }}
+            aria-hidden="true"
+          />
+
           {/* Contenders Foreground Content (Headline, Narrative & Feature List + Floating Explore Library Button) */}
           <motion.div
             id="contenders-content-layer"
@@ -1195,7 +1263,7 @@ export function ParallaxExperience() {
                   {/* Bold Condensed Section 2 Heading with staggered line reveals & organic liquid hover */}
                   <h2
                     id="contenders-title"
-                    className="font-display font-black text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] xl:text-[6.2rem] tracking-tight uppercase text-white leading-[0.92] drop-shadow-[0_10px_30px_rgba(0,0,0,0.85)] select-none"
+                    className="font-display font-medium text-2xl sm:text-3xl md:text-4xl lg:text-5xl tracking-wide uppercase text-white leading-[1.1] drop-shadow-[0_10px_30px_rgba(0,0,0,0.85)] select-none"
                   >
                     {slide.headline.map((line, idx) => (
                       <motion.span
@@ -1218,7 +1286,7 @@ export function ParallaxExperience() {
                   <motion.p
                     id="contenders-description"
                     variants={paragraphVariants}
-                    className="mt-5 sm:mt-7 text-sm sm:text-base md:text-lg lg:text-[17px] font-normal text-zinc-200/90 leading-relaxed max-w-xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] select-none will-change-[filter,opacity,transform]"
+                    className="mt-5 sm:mt-7 text-sm sm:text-base font-light text-white/75 tracking-[0.02em] leading-relaxed max-w-xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] select-none will-change-[filter,opacity,transform]"
                   >
                     {slide.description}
                   </motion.p>
@@ -1234,9 +1302,9 @@ export function ParallaxExperience() {
                       <motion.li
                         key={idx}
                         variants={featureItemVariants}
-                        className="flex items-start sm:items-center gap-3 text-xs sm:text-sm md:text-[15px] text-emerald-100/90 will-change-[filter,opacity,transform]"
+                        className="flex items-start sm:items-center gap-3 text-xs sm:text-sm md:text-[15px] text-white/90 will-change-[filter,opacity,transform]"
                       >
-                        <span className="flex-shrink-0 mt-0.5 sm:mt-0 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-emerald-500/15 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.25)]">
+                        <span className="flex-shrink-0 mt-0.5 sm:mt-0 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-[0_0_10px_rgba(34,197,94,0.25)]">
                           <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3" strokeWidth={2.5} />
                         </span>
                         <span className="font-normal tracking-wide drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)] select-none">
@@ -1249,17 +1317,14 @@ export function ParallaxExperience() {
               </AnimatePresence>
             </motion.div>
 
-            {/* Floating Glassmorphic Circle Button in the Constellation / Particles Field */}
+            {/* Floating Glassmorphic Circle Button in the Constellation / Particles
+                Field — phases in after the text (EXPLORE_BUTTON_ENTRANCE_DELAY),
+                then toggles quickly (no extra delay) with explore mode. */}
             <motion.div
-              animate={{
-                opacity: isExploreActive ? 0 : 1,
-                scale: isExploreActive ? 0.8 : 1,
-                pointerEvents: isExploreActive ? 'none' : 'auto',
-              }}
-              transition={{
-                duration: 0.45,
-                ease: [0.16, 1, 0.3, 1],
-              }}
+              variants={exploreButtonVariants}
+              initial="hidden"
+              animate={isExploreActive ? 'exploreHidden' : isSectionRevealed ? 'visible' : 'hidden'}
+              style={{ pointerEvents: isExploreActive ? 'none' : 'auto' }}
               className="mt-8 lg:mt-0 pointer-events-auto [transform:translateZ(32px)] flex items-center justify-center lg:mr-8 xl:mr-14 self-center lg:self-auto"
             >
               <ExploreLibraryButton onClick={() => setIsExploreActive(true)} />
@@ -1283,7 +1348,7 @@ export function ParallaxExperience() {
             WebkitClipPath: clipPathString2,
             pointerEvents: sectionThreePointerEvents,
           }}
-          className="absolute inset-0 w-full h-full z-30 overflow-hidden bg-[#020704] [perspective:1400px]"
+          className="absolute inset-0 w-full h-full z-30 overflow-hidden bg-[#050505] [perspective:1400px]"
         >
           {/* Persistent shared background — rendered once, never slides or
               fades. Both the Qrome content and the Insights content sit on
@@ -1308,6 +1373,8 @@ export function ParallaxExperience() {
               contentOpacity={placeholderTextOpacity}
               mouseX={smoothMouseX}
               mouseY={smoothMouseY}
+              isFeaturesExploreActive={isFeaturesExploreActive}
+              onFeaturesExploreActiveChange={handleFeaturesExploreActiveChange}
             />
           </motion.div>
 
@@ -1378,31 +1445,45 @@ export function ParallaxExperience() {
               <PioneerLogo />
             </button>
 
-            {/* Hamburger Menu Toggle */}
+            {/* "Get Early Access" — glassmorphic, jumps straight to the
+                Download App section instead of opening the nav drawer.
+                Hover reveals an ambient emerald glow bloom + a diagonal
+                sheen sweep, rather than a flat background highlight. */}
             <button
-              id="hamburger-menu-toggle"
-              onClick={() => setIsNavOpen(true)}
-              className="group flex flex-col justify-center items-end gap-1.5 w-8 h-8 focus:outline-none cursor-pointer"
-              aria-label="Open navigation menu"
+              id="get-early-access-btn"
+              onClick={scrollToSection4}
+              className="relative group inline-flex items-center justify-center px-4 py-3 sm:px-[18px] sm:py-3.5 rounded-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+              aria-label="Get early access"
             >
-              <span className="w-7 h-[2px] bg-white transition-all duration-300 group-hover:w-8 group-hover:bg-emerald-400" />
-              <span className="w-7 h-[2px] bg-white transition-all duration-300 group-hover:w-8 group-hover:bg-emerald-400" />
-              <span className="w-7 h-[2px] bg-white transition-all duration-300 group-hover:w-8 group-hover:bg-emerald-400" />
+              {/* Ambient emerald glow bloom behind the button */}
+              <span
+                className="absolute -inset-2.5 rounded-full pointer-events-none opacity-0 group-hover:opacity-100 blur-md transition-opacity duration-500"
+                style={{ background: 'radial-gradient(circle, rgba(34,197,94,0.35) 0%, transparent 70%)' }}
+                aria-hidden="true"
+              />
+
+              {/* Glass surface */}
+              <span className="glass absolute inset-0 rounded-full" aria-hidden="true" />
+
+              <span className="relative font-display font-medium text-[10px] sm:text-[11px] tracking-[0.16em] text-white/85 group-hover:text-white uppercase whitespace-nowrap transition-colors duration-200">
+                Get Early Access
+              </span>
             </button>
           </div>
         </motion.header>
 
-        {/* Floating Right-Edge Navigation Dot Indicator for Main Story Sections (Scroll-revealed) */}
+        {/* Floating Right-Edge Navigation Dot Indicator for Main Story Sections
+            (Hidden in Hero & the Section 4 Download App screen, or while an
+            explore hotspot is active — see isNavHidden above for the
+            earlier/finer scroll thresholds this uses.) */}
         <motion.nav
           id="floating-story-navigation"
           animate={{
-            opacity: isExploreActive ? 0 : 1,
-            pointerEvents: isExploreActive ? 'none' : 'auto',
+            opacity: isExploreActive || isFeaturesExploreActive || isNavHidden ? 0 : 1,
+            x: isExploreActive || isFeaturesExploreActive || isNavHidden ? 40 : 0,
+            pointerEvents: isExploreActive || isFeaturesExploreActive || isNavHidden ? 'none' : 'auto',
           }}
-          transition={{ duration: 0.3 }}
-          style={{
-            x: navDotsX,
-          }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           aria-label="Story sections navigation"
           className="absolute right-5 sm:right-8 lg:right-10 top-1/2 -translate-y-1/2 flex flex-col items-center gap-5 z-40 select-none"
         >
@@ -1424,20 +1505,27 @@ export function ParallaxExperience() {
                 aria-current={isActive ? 'true' : 'false'}
               >
                 {/* Floating Tooltip Pill on Hover */}
-                <div className="absolute right-10 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-md bg-[#04120a]/92 backdrop-blur-md border border-emerald-500/30 text-[11px] font-medium tracking-wider text-emerald-100 uppercase whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 transform translate-x-2 group-hover:translate-x-0 shadow-[0_4px_20px_rgba(0,0,0,0.8)] flex items-center gap-2">
-                  <span className="font-mono text-emerald-400 text-[10px]">{section.number}</span>
+                <div className="absolute right-10 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-md bg-[#0a0a0a]/92 backdrop-blur-md border border-white/30 text-[11px] font-medium tracking-wider text-white uppercase whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 transform translate-x-2 group-hover:translate-x-0 shadow-[0_4px_20px_rgba(0,0,0,0.8)] flex items-center gap-2">
+                  <span className="font-mono text-white text-[10px]">{section.number}</span>
                   <span>{section.label}</span>
                 </div>
 
-                {/* Active Animated Orbital Ring vs Inactive Clean Dot */}
-                {isActive ? (
-                  <div className="relative flex items-center justify-center w-7 h-7">
+                {/* Active Animated Orbital Ring vs Inactive Clean Dot —
+                    both always mounted and crossfaded via animate, so
+                    switching the active section eases smoothly instead of
+                    snapping between the two states. */}
+                <div className="relative flex items-center justify-center w-7 h-7">
+                  <motion.div
+                    animate={{ opacity: isActive ? 1 : 0, scale: isActive ? 1 : 0.6 }}
+                    transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                  >
                     {/* Continuous Rotating Segmented Aura */}
                     <motion.svg
                       initial={{ rotate: 0 }}
                       animate={{ rotate: 360 }}
                       transition={{ duration: 14, repeat: Infinity, ease: 'linear' }}
-                      className="absolute inset-0 w-full h-full text-emerald-400/90"
+                      className="absolute inset-0 w-full h-full text-emerald-400"
                       viewBox="0 0 28 28"
                     >
                       <circle
@@ -1448,17 +1536,21 @@ export function ParallaxExperience() {
                         stroke="currentColor"
                         strokeWidth="1.4"
                         strokeDasharray="45 15"
-                        className="opacity-95 drop-shadow-[0_0_6px_rgba(16,185,129,0.8)]"
+                        className="opacity-95 drop-shadow-[0_0_6px_rgba(34,197,94,0.6)]"
                       />
                     </motion.svg>
                     {/* Glowing Core Center */}
-                    <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.9),0_0_20px_rgba(16,185,129,0.9)]" />
-                  </div>
-                ) : (
-                  <div className="relative flex items-center justify-center w-5 h-5">
+                    <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.9),0_0_20px_rgba(255,255,255,0.5)]" />
+                  </motion.div>
+
+                  <motion.div
+                    animate={{ opacity: isActive ? 0 : 1, scale: isActive ? 0.5 : 1 }}
+                    transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute inset-0 flex items-center justify-center"
+                  >
                     <div className="w-1.5 h-1.5 rounded-full bg-white/40 group-hover:bg-white/90 group-hover:scale-150 transition-all duration-200 group-hover:shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
-                  </div>
-                )}
+                  </motion.div>
+                </div>
               </button>
             );
           })}
@@ -1485,7 +1577,7 @@ export function ParallaxExperience() {
               repeat: Infinity,
               ease: 'easeInOut',
             }}
-            className="group relative flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#03150d]/80 hover:bg-[#072418]/95 border border-emerald-500/30 hover:border-emerald-400/60 backdrop-blur-md text-emerald-300/80 hover:text-emerald-100 transition-all duration-300 shadow-[0_4px_18px_rgba(0,0,0,0.6)] cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-400/50"
+            className="group relative flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#0a0a0a]/80 hover:bg-[#141414]/95 border border-emerald-500/30 hover:border-emerald-400/60 backdrop-blur-md text-emerald-300/80 hover:text-emerald-200 transition-all duration-300 shadow-[0_4px_18px_rgba(0,0,0,0.6)] cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-400/50"
             aria-label="Scroll down to explore"
           >
             {/* Gentle Pulsing Ring Glow */}
@@ -1522,19 +1614,77 @@ export function ParallaxExperience() {
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
               className="fixed top-6 right-6 sm:top-8 sm:right-8 z-50 flex items-center pointer-events-auto"
             >
-              <button
-                id="close-library-explore-mode-btn"
-                type="button"
-                onClick={() => setIsExploreActive(false)}
-                className="group flex items-center gap-2 px-4 py-2 rounded-full bg-[#020d07]/85 hover:bg-[#031c0e] border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 hover:text-white backdrop-blur-md transition-all duration-200 shadow-[0_6px_30px_rgba(0,0,0,0.85),0_0_20px_rgba(16,185,129,0.3)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                aria-label="Close explore view and restore text"
+              {/* Gentle continuous float, echoing the Explore The Library button */}
+              <motion.div
+                animate={{ y: [-4, 4, -4] }}
+                transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
               >
-                <X className="w-4 h-4 text-emerald-400 group-hover:rotate-90 transition-transform duration-200" />
-                <span className="font-mono text-xs font-semibold tracking-wider uppercase">Close</span>
-                <kbd className="hidden sm:inline-block text-[10px] px-1.5 py-0.5 rounded bg-black/60 text-zinc-400 font-mono border border-white/10">
-                  ESC
-                </kbd>
-              </button>
+                <button
+                  id="close-library-explore-mode-btn"
+                  type="button"
+                  onClick={() => setIsExploreActive(false)}
+                  className="glass group flex items-center justify-center w-14 h-14 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/50"
+                  aria-label="Close explore view and restore text"
+                >
+                  <X className="w-5 h-5 group-hover:rotate-90 transition-transform duration-200" />
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Close button for the Qrome Products "View The Features" in-place
+            panel — rendered here at the top level (not inside
+            PlaceholderSection's own transformed 3D stage) for the same
+            position:fixed containing-block reason as the button above. */}
+        <AnimatePresence>
+          {isFeaturesExploreActive && (
+            <motion.div
+              initial={{ opacity: 0, y: -16, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -16, scale: 0.9 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              className="fixed top-24 sm:top-28 right-[6%] sm:right-[9%] lg:right-[11%] z-50 flex items-center pointer-events-auto"
+            >
+              <motion.div
+                animate={{ y: [-4, 4, -4] }}
+                transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <button
+                  id="close-features-panel-btn"
+                  type="button"
+                  onClick={() => setIsFeaturesExploreActive(false)}
+                  className="glass group flex items-center justify-center w-14 h-14 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/50"
+                  aria-label="Close features panel"
+                >
+                  <X className="w-5 h-5 group-hover:rotate-90 transition-transform duration-200" />
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Explore Mode HUD Guidance — rendered here (alongside the Close
+            button) rather than inside ConstellationCanvas, because that
+            component sits inside the rotateX/rotateY-transformed 3D stage:
+            any transformed ancestor becomes the containing block for
+            position:fixed descendants, so it was rendering somewhere off the
+            actual viewport instead of pinned to the top of the screen. */}
+        <AnimatePresence>
+          {isExploreActive && (
+            <motion.div
+              initial={{ opacity: 0, y: -16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ delay: 0.35, duration: 0.45 }}
+              className="fixed top-6 sm:top-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none flex flex-col items-center gap-1.5 text-center select-none"
+            >
+              <span className="font-display font-black text-[10px] sm:text-[11px] tracking-[0.4em] text-white uppercase">
+                Explore Mode
+              </span>
+              <span className="text-[11px] sm:text-xs font-light text-white/40 tracking-wide">
+                Click a node to view corn trait card
+              </span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -1554,13 +1704,6 @@ export function ParallaxExperience() {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Slide-out Navigation Drawer */}
-        <NavDrawer
-          isOpen={isNavOpen}
-          onClose={() => setIsNavOpen(false)}
-          onLogoClick={scrollToHero}
-        />
 
         {/* Genetic Trait Library Explorer Modal */}
         <GeneticLibraryModal

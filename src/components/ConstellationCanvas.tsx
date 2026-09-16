@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import { MotionValue, motion, AnimatePresence } from 'motion/react';
+import { MotionValue } from 'motion/react';
 import { CornSeedTrait, getCornTrait } from '../data/cornTraits';
 
 interface ConstellationCanvasProps {
@@ -68,6 +68,10 @@ export function ConstellationCanvas({
   const selectedNodeIdRef = useRef<number | null>(selectedTrait?.id ?? null);
   const activeHoveredNodeRef = useRef<ProjectedNode | null>(null);
   const latestProjectedNodesRef = useRef<ProjectedNode[]>([]);
+  // Per-node smoothed hover/selection amount (0 = resting, 1 = fully
+  // active), lerped each frame so the hover state fades in/out gradually
+  // instead of snapping instantly.
+  const hoverTransitionRef = useRef<Map<number, number>>(new Map());
 
   useEffect(() => {
     onSelectTraitRef.current = onSelectTrait;
@@ -173,6 +177,7 @@ export function ConstellationCanvas({
       const clickY = e.clientY - rect.top;
 
       const candidates = latestProjectedNodesRef.current.filter((n) => {
+        if (!FEATURED_NODE_IDS.has(n.id)) return false;
         const dx = clickX - n.projX;
         const dy = clickY - n.projY;
         const hitRadius = Math.max(n.radius * n.perspective + 24, 34);
@@ -216,90 +221,103 @@ export function ConstellationCanvas({
 
     const nodes: NodePoint[] = [
       // STRAND A (Angle offset: 0) - Primary Genomic Trait Sequence (Extended)
-      { id: 100, relY: -0.06, angleOffset: 0,           helicalTurns: turns, radiusFactor: 0.95, radius: 6.5, color: '#facc15', glowColor: 'rgba(250, 204, 21, 0.75)', pulsePhase: 0.5, pulseSpeed: 0.02, connections: [101, 102] },
-      { id: 102, relY: 0.00,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 1.0,  radius: 7.0, color: '#eab308', glowColor: 'rgba(234, 179, 8, 0.8)',  pulsePhase: 1.2, pulseSpeed: 0.019, connections: [103, 0] },
-      { id: 0,   relY: 0.06,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 1.0,  radius: 7.5, color: '#facc15', glowColor: 'rgba(250, 204, 21, 0.85)', pulsePhase: 0.0, pulseSpeed: 0.02, connections: [1, 2] },
-      { id: 2,   relY: 0.13,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 0.95, radius: 6.0, color: '#eab308', glowColor: 'rgba(234, 179, 8, 0.75)',  pulsePhase: 0.8, pulseSpeed: 0.018, connections: [3, 4] },
-      { id: 4,   relY: 0.20,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 1.0,  radius: 6.5, color: '#facc15', glowColor: 'rgba(250, 204, 21, 0.8)',  pulsePhase: 1.6, pulseSpeed: 0.022, connections: [5, 6] },
-      { id: 6,   relY: 0.28,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 0.9,  radius: 6.0, color: '#ca8a04', glowColor: 'rgba(202, 138, 4, 0.7)',   pulsePhase: 2.4, pulseSpeed: 0.017, connections: [7, 8] },
-      { id: 8,   relY: 0.36,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 1.0,  radius: 7.0, color: '#facc15', glowColor: 'rgba(250, 204, 21, 0.85)', pulsePhase: 3.2, pulseSpeed: 0.021, connections: [9, 10] },
-      { id: 10,  relY: 0.44,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 0.95, radius: 6.5, color: '#eab308', glowColor: 'rgba(234, 179, 8, 0.75)',  pulsePhase: 4.0, pulseSpeed: 0.019, connections: [11, 12] },
-      { id: 12,  relY: 0.52,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 1.05, radius: 8.5, color: '#facc15', glowColor: 'rgba(250, 204, 21, 0.9)',   pulsePhase: 4.8, pulseSpeed: 0.024, connections: [13, 14, 28] },
-      { id: 14,  relY: 0.60,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 0.95, radius: 6.5, color: '#ca8a04', glowColor: 'rgba(202, 138, 4, 0.75)',  pulsePhase: 0.5, pulseSpeed: 0.018, connections: [15, 16] },
-      { id: 16,  relY: 0.68,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 1.0,  radius: 7.0, color: '#facc15', glowColor: 'rgba(250, 204, 21, 0.85)', pulsePhase: 1.4, pulseSpeed: 0.022, connections: [17, 18] },
-      { id: 18,  relY: 0.76,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 0.95, radius: 6.5, color: '#eab308', glowColor: 'rgba(234, 179, 8, 0.75)',  pulsePhase: 2.3, pulseSpeed: 0.019, connections: [19, 20] },
-      { id: 20,  relY: 0.84,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 0.9,  radius: 7.0, color: '#facc15', glowColor: 'rgba(250, 204, 21, 0.8)',  pulsePhase: 3.1, pulseSpeed: 0.02,  connections: [21, 32] },
-      { id: 22,  relY: 0.92,  angleOffset: 0.1,         helicalTurns: turns, radiusFactor: 0.85, radius: 8.0, color: '#facc15', glowColor: 'rgba(250, 204, 21, 0.85)', pulsePhase: 4.0, pulseSpeed: 0.022, connections: [105, 106] },
-      { id: 106, relY: 1.00,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 0.95, radius: 7.5, color: '#eab308', glowColor: 'rgba(234, 179, 8, 0.8)',  pulsePhase: 0.8, pulseSpeed: 0.02,  connections: [107, 108] },
-      { id: 108, relY: 1.07,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 1.0,  radius: 8.0, color: '#facc15', glowColor: 'rgba(250, 204, 21, 0.75)', pulsePhase: 1.7, pulseSpeed: 0.019, connections: [] },
+      { id: 100, relY: -0.06, angleOffset: 0,           helicalTurns: turns, radiusFactor: 0.95, radius: 6.5, color: '#f4f4f5', glowColor: 'rgba(244, 244, 245, 0.75)', pulsePhase: 0.5, pulseSpeed: 0.02, connections: [101, 102] },
+      { id: 102, relY: 0.00,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 1.0,  radius: 7.0, color: '#d4d4d8', glowColor: 'rgba(212, 212, 216, 0.8)',  pulsePhase: 1.2, pulseSpeed: 0.019, connections: [103, 0] },
+      { id: 0,   relY: 0.06,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 1.0,  radius: 7.5, color: '#f4f4f5', glowColor: 'rgba(244, 244, 245, 0.85)', pulsePhase: 0.0, pulseSpeed: 0.02, connections: [1, 2] },
+      { id: 2,   relY: 0.13,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 0.95, radius: 6.0, color: '#d4d4d8', glowColor: 'rgba(212, 212, 216, 0.75)',  pulsePhase: 0.8, pulseSpeed: 0.018, connections: [3, 4] },
+      { id: 4,   relY: 0.20,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 1.0,  radius: 6.5, color: '#f4f4f5', glowColor: 'rgba(244, 244, 245, 0.8)',  pulsePhase: 1.6, pulseSpeed: 0.022, connections: [5, 6] },
+      { id: 6,   relY: 0.28,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 0.9,  radius: 6.0, color: '#a1a1aa', glowColor: 'rgba(161, 161, 170, 0.7)',   pulsePhase: 2.4, pulseSpeed: 0.017, connections: [7, 8] },
+      { id: 8,   relY: 0.36,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 1.0,  radius: 7.0, color: '#f4f4f5', glowColor: 'rgba(244, 244, 245, 0.85)', pulsePhase: 3.2, pulseSpeed: 0.021, connections: [9, 10] },
+      { id: 10,  relY: 0.44,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 0.95, radius: 6.5, color: '#d4d4d8', glowColor: 'rgba(212, 212, 216, 0.75)',  pulsePhase: 4.0, pulseSpeed: 0.019, connections: [11, 12] },
+      { id: 12,  relY: 0.52,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 1.05, radius: 8.5, color: '#f4f4f5', glowColor: 'rgba(244, 244, 245, 0.9)',   pulsePhase: 4.8, pulseSpeed: 0.024, connections: [13, 14] },
+      { id: 14,  relY: 0.60,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 0.95, radius: 6.5, color: '#a1a1aa', glowColor: 'rgba(161, 161, 170, 0.75)',  pulsePhase: 0.5, pulseSpeed: 0.018, connections: [15, 16] },
+      { id: 16,  relY: 0.68,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 1.0,  radius: 7.0, color: '#f4f4f5', glowColor: 'rgba(244, 244, 245, 0.85)', pulsePhase: 1.4, pulseSpeed: 0.022, connections: [17, 18] },
+      { id: 18,  relY: 0.76,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 0.95, radius: 6.5, color: '#d4d4d8', glowColor: 'rgba(212, 212, 216, 0.75)',  pulsePhase: 2.3, pulseSpeed: 0.019, connections: [19, 20] },
+      { id: 20,  relY: 0.84,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 0.9,  radius: 7.0, color: '#f4f4f5', glowColor: 'rgba(244, 244, 245, 0.8)',  pulsePhase: 3.1, pulseSpeed: 0.02,  connections: [21] },
+      { id: 22,  relY: 0.92,  angleOffset: 0.1,         helicalTurns: turns, radiusFactor: 0.85, radius: 8.0, color: '#f4f4f5', glowColor: 'rgba(244, 244, 245, 0.85)', pulsePhase: 4.0, pulseSpeed: 0.022, connections: [105, 106] },
+      { id: 106, relY: 1.00,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 0.95, radius: 7.5, color: '#d4d4d8', glowColor: 'rgba(212, 212, 216, 0.8)',  pulsePhase: 0.8, pulseSpeed: 0.02,  connections: [107, 108] },
+      { id: 108, relY: 1.07,  angleOffset: 0,           helicalTurns: turns, radiusFactor: 1.0,  radius: 8.0, color: '#f4f4f5', glowColor: 'rgba(244, 244, 245, 0.75)', pulsePhase: 1.7, pulseSpeed: 0.019, connections: [] },
 
       // STRAND B (Angle offset: Math.PI) - Counter-Helix Bioluminescent Strand (Extended)
-      { id: 101, relY: -0.05, angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 0.95, radius: 6.0, color: '#2dd4bf', glowColor: 'rgba(45, 212, 191, 0.75)', pulsePhase: 0.7, pulseSpeed: 0.018, connections: [103] },
-      { id: 103, relY: 0.01,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 1.0,  radius: 6.5, color: '#5eead4', glowColor: 'rgba(94, 234, 212, 0.8)',  pulsePhase: 1.5, pulseSpeed: 0.02,  connections: [1] },
-      { id: 1,   relY: 0.07,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 1.0,  radius: 6.0, color: '#2dd4bf', glowColor: 'rgba(45, 212, 191, 0.8)',  pulsePhase: 0.4, pulseSpeed: 0.019, connections: [3] },
-      { id: 3,   relY: 0.14,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 0.95, radius: 6.5, color: '#5eead4', glowColor: 'rgba(94, 234, 212, 0.75)', pulsePhase: 1.2, pulseSpeed: 0.021, connections: [5] },
-      { id: 5,   relY: 0.22,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 1.0,  radius: 7.0, color: '#6ee7b7', glowColor: 'rgba(110, 231, 183, 0.8)', pulsePhase: 2.0, pulseSpeed: 0.017, connections: [7] },
-      { id: 7,   relY: 0.30,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 0.9,  radius: 6.0, color: '#34d399', glowColor: 'rgba(52, 211, 153, 0.7)',  pulsePhase: 2.8, pulseSpeed: 0.02,  connections: [9] },
-      { id: 9,   relY: 0.38,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 1.0,  radius: 6.5, color: '#2dd4bf', glowColor: 'rgba(45, 212, 191, 0.75)', pulsePhase: 3.6, pulseSpeed: 0.018, connections: [11] },
-      { id: 11,  relY: 0.46,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 0.95, radius: 7.0, color: '#5eead4', glowColor: 'rgba(94, 234, 212, 0.8)',  pulsePhase: 4.4, pulseSpeed: 0.023, connections: [13] },
-      { id: 13,  relY: 0.54,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 1.05, radius: 8.0, color: '#6ee7b7', glowColor: 'rgba(110, 231, 183, 0.85)', pulsePhase: 0.2, pulseSpeed: 0.025, connections: [15, 29] },
-      { id: 15,  relY: 0.62,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 0.95, radius: 6.5, color: '#34d399', glowColor: 'rgba(52, 211, 153, 0.7)',  pulsePhase: 1.1, pulseSpeed: 0.019, connections: [17] },
-      { id: 17,  relY: 0.70,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 1.0,  radius: 6.5, color: '#2dd4bf', glowColor: 'rgba(45, 212, 191, 0.75)', pulsePhase: 2.1, pulseSpeed: 0.02,  connections: [19] },
-      { id: 19,  relY: 0.78,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 0.95, radius: 6.0, color: '#5eead4', glowColor: 'rgba(94, 234, 212, 0.75)', pulsePhase: 2.9, pulseSpeed: 0.018, connections: [21] },
-      { id: 21,  relY: 0.86,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 0.9,  radius: 7.5, color: '#6ee7b7', glowColor: 'rgba(110, 231, 183, 0.85)', pulsePhase: 3.8, pulseSpeed: 0.022, connections: [22] },
-      { id: 105, relY: 0.94,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 0.95, radius: 7.0, color: '#2dd4bf', glowColor: 'rgba(45, 212, 191, 0.8)',  pulsePhase: 4.3, pulseSpeed: 0.021, connections: [107] },
-      { id: 107, relY: 1.02,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 1.0,  radius: 7.5, color: '#5eead4', glowColor: 'rgba(94, 234, 212, 0.85)', pulsePhase: 0.6, pulseSpeed: 0.024, connections: [] },
+      { id: 101, relY: -0.05, angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 0.95, radius: 6.0, color: '#a1a1aa', glowColor: 'rgba(161, 161, 170, 0.75)', pulsePhase: 0.7, pulseSpeed: 0.018, connections: [103] },
+      { id: 103, relY: 0.01,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 1.0,  radius: 6.5, color: '#d4d4d8', glowColor: 'rgba(212, 212, 216, 0.8)',  pulsePhase: 1.5, pulseSpeed: 0.02,  connections: [1] },
+      { id: 1,   relY: 0.07,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 1.0,  radius: 6.0, color: '#a1a1aa', glowColor: 'rgba(161, 161, 170, 0.8)',  pulsePhase: 0.4, pulseSpeed: 0.019, connections: [3] },
+      { id: 3,   relY: 0.14,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 0.95, radius: 6.5, color: '#d4d4d8', glowColor: 'rgba(212, 212, 216, 0.75)', pulsePhase: 1.2, pulseSpeed: 0.021, connections: [5] },
+      { id: 5,   relY: 0.22,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 1.0,  radius: 7.0, color: '#e4e4e7', glowColor: 'rgba(228, 228, 231, 0.8)', pulsePhase: 2.0, pulseSpeed: 0.017, connections: [7] },
+      { id: 7,   relY: 0.30,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 0.9,  radius: 6.0, color: '#71717a', glowColor: 'rgba(113, 113, 122, 0.7)',  pulsePhase: 2.8, pulseSpeed: 0.02,  connections: [9] },
+      { id: 9,   relY: 0.38,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 1.0,  radius: 6.5, color: '#a1a1aa', glowColor: 'rgba(161, 161, 170, 0.75)', pulsePhase: 3.6, pulseSpeed: 0.018, connections: [11] },
+      { id: 11,  relY: 0.46,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 0.95, radius: 7.0, color: '#d4d4d8', glowColor: 'rgba(212, 212, 216, 0.8)',  pulsePhase: 4.4, pulseSpeed: 0.023, connections: [13] },
+      { id: 13,  relY: 0.54,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 1.05, radius: 8.0, color: '#e4e4e7', glowColor: 'rgba(228, 228, 231, 0.85)', pulsePhase: 0.2, pulseSpeed: 0.025, connections: [15, 29] },
+      { id: 15,  relY: 0.62,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 0.95, radius: 6.5, color: '#71717a', glowColor: 'rgba(113, 113, 122, 0.7)',  pulsePhase: 1.1, pulseSpeed: 0.019, connections: [17] },
+      { id: 17,  relY: 0.70,  angleOffset: Math.PI * 1.12, helicalTurns: turns, radiusFactor: 1.15, radius: 6.5, color: '#f59e0b', glowColor: 'rgba(245, 158, 11, 0.85)', pulsePhase: 2.1, pulseSpeed: 0.02,  connections: [19] },
+      { id: 19,  relY: 0.78,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 0.95, radius: 6.0, color: '#22c55e', glowColor: 'rgba(34, 197, 94, 0.75)', pulsePhase: 2.9, pulseSpeed: 0.018, connections: [21] },
+      { id: 21,  relY: 0.86,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 0.9,  radius: 7.5, color: '#e4e4e7', glowColor: 'rgba(228, 228, 231, 0.85)', pulsePhase: 3.8, pulseSpeed: 0.022, connections: [22] },
+      { id: 105, relY: 0.94,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 0.95, radius: 7.0, color: '#a1a1aa', glowColor: 'rgba(161, 161, 170, 0.8)',  pulsePhase: 4.3, pulseSpeed: 0.021, connections: [107] },
+      { id: 107, relY: 1.02,  angleOffset: Math.PI,     helicalTurns: turns, radiusFactor: 1.0,  radius: 7.5, color: '#d4d4d8', glowColor: 'rgba(212, 212, 216, 0.85)', pulsePhase: 0.6, pulseSpeed: 0.024, connections: [] },
 
       // CENTRAL ALGORITHMIC NEXUS HUBS (Lower radiusFactor, inner core computational nodes)
-      { id: 104, relY: -0.02, angleOffset: Math.PI * 0.5, helicalTurns: turns, radiusFactor: 0.35, radius: 6.0, color: '#a7f3d0', glowColor: 'rgba(167, 243, 208, 0.75)', pulsePhase: 0.9, pulseSpeed: 0.02, connections: [100, 101] },
-      { id: 31,  relY: 0.09,  angleOffset: Math.PI * 0.2, helicalTurns: turns, radiusFactor: 0.4,  radius: 5.5, color: '#5eead4', glowColor: 'rgba(94, 234, 212, 0.7)',  pulsePhase: 0.5, pulseSpeed: 0.018, connections: [0, 1] },
-      { id: 24,  relY: 0.17,  angleOffset: Math.PI * 0.5, helicalTurns: turns, radiusFactor: 0.35, radius: 6.0, color: '#a7f3d0', glowColor: 'rgba(167, 243, 208, 0.8)',  pulsePhase: 1.0, pulseSpeed: 0.02,  connections: [2, 3] },
-      { id: 25,  relY: 0.33,  angleOffset: Math.PI * 1.5, helicalTurns: turns, radiusFactor: 0.4,  radius: 6.5, color: '#a7f3d0', glowColor: 'rgba(167, 243, 208, 0.8)',  pulsePhase: 2.6, pulseSpeed: 0.022, connections: [6, 7] },
-      { id: 26,  relY: 0.49,  angleOffset: Math.PI * 0.5, helicalTurns: turns, radiusFactor: 0.3,  radius: 8.0, color: '#ffffff', glowColor: 'rgba(255, 255, 255, 0.9)',  pulsePhase: 3.5, pulseSpeed: 0.025, connections: [10, 11, 12, 13] },
-      { id: 28,  relY: 0.58,  angleOffset: Math.PI * 0.2, helicalTurns: turns, radiusFactor: 0.5,  radius: 6.0, color: '#34d399', glowColor: 'rgba(52, 211, 153, 0.7)',  pulsePhase: 1.7, pulseSpeed: 0.021, connections: [14] },
-      { id: 29,  relY: 0.60,  angleOffset: Math.PI * 1.2, helicalTurns: turns, radiusFactor: 0.5,  radius: 6.0, color: '#5eead4', glowColor: 'rgba(94, 234, 212, 0.7)',  pulsePhase: 2.2, pulseSpeed: 0.018, connections: [15] },
-      { id: 27,  relY: 0.68,  angleOffset: Math.PI * 1.5, helicalTurns: turns, radiusFactor: 0.4,  radius: 6.5, color: '#a7f3d0', glowColor: 'rgba(167, 243, 208, 0.8)',  pulsePhase: 0.8, pulseSpeed: 0.019, connections: [14, 15] },
-      { id: 30,  relY: 0.83,  angleOffset: Math.PI * 0.5, helicalTurns: turns, radiusFactor: 0.35, radius: 7.0, color: '#a7f3d0', glowColor: 'rgba(167, 243, 208, 0.8)',  pulsePhase: 3.3, pulseSpeed: 0.022, connections: [18, 19, 20, 21] },
-      { id: 32,  relY: 0.90,  angleOffset: 0.1,           helicalTurns: turns, radiusFactor: 0.45, radius: 7.5, color: '#5eead4', glowColor: 'rgba(94, 234, 212, 0.85)', pulsePhase: 4.0, pulseSpeed: 0.023, connections: [22] },
-      { id: 110, relY: 0.98,  angleOffset: Math.PI * 0.4, helicalTurns: turns, radiusFactor: 0.4,  radius: 7.0, color: '#a7f3d0', glowColor: 'rgba(167, 243, 208, 0.8)',  pulsePhase: 1.3, pulseSpeed: 0.022, connections: [22, 105] },
-      { id: 111, relY: 1.05,  angleOffset: Math.PI * 1.4, helicalTurns: turns, radiusFactor: 0.4,  radius: 7.5, color: '#5eead4', glowColor: 'rgba(94, 234, 212, 0.85)', pulsePhase: 2.5, pulseSpeed: 0.021, connections: [106, 107] },
+      // Amber/emerald accent pair — deliberately distinct from the monochrome
+      // strand nodes above, so this ambient background layer reads as its
+      // own textured depth cue rather than more of the same spiral.
+      { id: 104, relY: -0.02, angleOffset: Math.PI * 0.5, helicalTurns: turns, radiusFactor: 0.35, radius: 6.0, color: '#f59e0b', glowColor: 'rgba(245, 158, 11, 0.75)', pulsePhase: 0.9, pulseSpeed: 0.02, connections: [100] },
+      { id: 31,  relY: 0.09,  angleOffset: Math.PI * 0.2, helicalTurns: turns, radiusFactor: 0.4,  radius: 5.5, color: '#22c55e', glowColor: 'rgba(34, 197, 94, 0.7)',   pulsePhase: 0.5, pulseSpeed: 0.018, connections: [0] },
+      { id: 24,  relY: 0.17,  angleOffset: Math.PI * 0.5, helicalTurns: turns, radiusFactor: 0.35, radius: 6.0, color: '#f59e0b', glowColor: 'rgba(245, 158, 11, 0.8)',  pulsePhase: 1.0, pulseSpeed: 0.02,  connections: [2] },
+      { id: 25,  relY: 0.33,  angleOffset: Math.PI * 1.5, helicalTurns: turns, radiusFactor: 0.4,  radius: 6.5, color: '#22c55e', glowColor: 'rgba(34, 197, 94, 0.8)',   pulsePhase: 2.6, pulseSpeed: 0.022, connections: [6] },
+      { id: 26,  relY: 0.49,  angleOffset: Math.PI * 0.5, helicalTurns: turns, radiusFactor: 0.3,  radius: 8.0, color: '#fbbf24', glowColor: 'rgba(251, 191, 36, 0.9)',  pulsePhase: 3.5, pulseSpeed: 0.025, connections: [12] },
+      { id: 28,  relY: 0.58,  angleOffset: Math.PI * 0.2, helicalTurns: turns, radiusFactor: 0.5,  radius: 6.0, color: '#16a34a', glowColor: 'rgba(22, 163, 74, 0.7)',   pulsePhase: 1.7, pulseSpeed: 0.021, connections: [14] },
+      { id: 29,  relY: 0.60,  angleOffset: Math.PI * 1.2, helicalTurns: turns, radiusFactor: 0.5,  radius: 6.0, color: '#f59e0b', glowColor: 'rgba(245, 158, 11, 0.7)',  pulsePhase: 2.2, pulseSpeed: 0.018, connections: [15] },
+      { id: 27,  relY: 0.68,  angleOffset: Math.PI * 1.5, helicalTurns: turns, radiusFactor: 0.4,  radius: 6.5, color: '#22c55e', glowColor: 'rgba(34, 197, 94, 0.8)',   pulsePhase: 0.8, pulseSpeed: 0.019, connections: [14] },
+      { id: 30,  relY: 0.83,  angleOffset: Math.PI * 0.5, helicalTurns: turns, radiusFactor: 0.35, radius: 7.0, color: '#f59e0b', glowColor: 'rgba(245, 158, 11, 0.8)',  pulsePhase: 3.3, pulseSpeed: 0.022, connections: [20] },
+      { id: 32,  relY: 0.90,  angleOffset: 0.1,           helicalTurns: turns, radiusFactor: 0.45, radius: 7.5, color: '#22c55e', glowColor: 'rgba(34, 197, 94, 0.85)',  pulsePhase: 4.0, pulseSpeed: 0.023, connections: [22] },
+      { id: 110, relY: 0.98,  angleOffset: Math.PI * 0.4, helicalTurns: turns, radiusFactor: 0.4,  radius: 7.0, color: '#f59e0b', glowColor: 'rgba(245, 158, 11, 0.8)',  pulsePhase: 1.3, pulseSpeed: 0.022, connections: [22] },
+      { id: 111, relY: 1.05,  angleOffset: Math.PI * 1.4, helicalTurns: turns, radiusFactor: 0.4,  radius: 7.5, color: '#22c55e', glowColor: 'rgba(34, 197, 94, 0.85)',  pulsePhase: 2.5, pulseSpeed: 0.021, connections: [106] },
     ];
+
+    // Node ids belonging to the amber/emerald nexus-hub background layer —
+    // used below to give them a softer, larger bokeh-style glow halo than
+    // the crisp foreground strand nodes.
+    const nexusHubIds = new Set([104, 31, 24, 25, 26, 28, 29, 27, 30, 32, 110, 111]);
+
+    // Only these three nodes are actually clickable / carry a marker ring in
+    // Explore Mode — spread across the top, middle, and bottom of the spiral
+    // so the highlighted traits feel intentional rather than random.
+    const FEATURED_NODE_IDS = new Set([19, 12, 17]);
 
     // Travelling data pulses along the extended genetic helix & cross-bridges
     const dataPulses: DataPulse[] = [
-      { fromNode: 100, toNode: 102, progress: 0.2, speed: 0.009, color: '#facc15' },
-      { fromNode: 101, toNode: 103, progress: 0.6, speed: 0.008, color: '#5eead4' },
-      { fromNode: 102, toNode: 0, progress: 0.4, speed: 0.008, color: '#eab308' },
-      { fromNode: 103, toNode: 1, progress: 0.7, speed: 0.008, color: '#2dd4bf' },
-      { fromNode: 0, toNode: 2, progress: 0.1, speed: 0.009, color: '#facc15' },
-      { fromNode: 1, toNode: 3, progress: 0.5, speed: 0.008, color: '#5eead4' },
-      { fromNode: 2, toNode: 24, progress: 0.3, speed: 0.007, color: '#a7f3d0' },
-      { fromNode: 24, toNode: 3, progress: 0.7, speed: 0.008, color: '#6ee7b7' },
-      { fromNode: 2, toNode: 4, progress: 0.4, speed: 0.009, color: '#eab308' },
-      { fromNode: 3, toNode: 5, progress: 0.8, speed: 0.007, color: '#34d399' },
-      { fromNode: 4, toNode: 6, progress: 0.2, speed: 0.008, color: '#facc15' },
-      { fromNode: 5, toNode: 7, progress: 0.6, speed: 0.008, color: '#2dd4bf' },
-      { fromNode: 6, toNode: 25, progress: 0.4, speed: 0.007, color: '#a7f3d0' },
-      { fromNode: 25, toNode: 7, progress: 0.8, speed: 0.008, color: '#5eead4' },
-      { fromNode: 8, toNode: 10, progress: 0.15, speed: 0.009, color: '#facc15' },
-      { fromNode: 9, toNode: 11, progress: 0.55, speed: 0.008, color: '#6ee7b7' },
+      { fromNode: 100, toNode: 102, progress: 0.2, speed: 0.009, color: '#f4f4f5' },
+      { fromNode: 101, toNode: 103, progress: 0.6, speed: 0.008, color: '#d4d4d8' },
+      { fromNode: 102, toNode: 0, progress: 0.4, speed: 0.008, color: '#d4d4d8' },
+      { fromNode: 103, toNode: 1, progress: 0.7, speed: 0.008, color: '#a1a1aa' },
+      { fromNode: 0, toNode: 2, progress: 0.1, speed: 0.009, color: '#f4f4f5' },
+      { fromNode: 1, toNode: 3, progress: 0.5, speed: 0.008, color: '#d4d4d8' },
+      { fromNode: 2, toNode: 24, progress: 0.3, speed: 0.007, color: '#f4f4f5' },
+      { fromNode: 24, toNode: 3, progress: 0.7, speed: 0.008, color: '#e4e4e7' },
+      { fromNode: 2, toNode: 4, progress: 0.4, speed: 0.009, color: '#d4d4d8' },
+      { fromNode: 3, toNode: 5, progress: 0.8, speed: 0.007, color: '#71717a' },
+      { fromNode: 4, toNode: 6, progress: 0.2, speed: 0.008, color: '#f4f4f5' },
+      { fromNode: 5, toNode: 7, progress: 0.6, speed: 0.008, color: '#a1a1aa' },
+      { fromNode: 6, toNode: 25, progress: 0.4, speed: 0.007, color: '#f4f4f5' },
+      { fromNode: 25, toNode: 7, progress: 0.8, speed: 0.008, color: '#d4d4d8' },
+      { fromNode: 8, toNode: 10, progress: 0.15, speed: 0.009, color: '#f4f4f5' },
+      { fromNode: 9, toNode: 11, progress: 0.55, speed: 0.008, color: '#e4e4e7' },
       { fromNode: 10, toNode: 26, progress: 0.35, speed: 0.01, color: '#ffffff' },
       { fromNode: 11, toNode: 26, progress: 0.75, speed: 0.01, color: '#ffffff' },
-      { fromNode: 26, toNode: 12, progress: 0.2, speed: 0.009, color: '#facc15' },
-      { fromNode: 26, toNode: 13, progress: 0.6, speed: 0.009, color: '#2dd4bf' },
-      { fromNode: 12, toNode: 14, progress: 0.45, speed: 0.008, color: '#eab308' },
-      { fromNode: 13, toNode: 15, progress: 0.85, speed: 0.007, color: '#5eead4' },
-      { fromNode: 14, toNode: 27, progress: 0.25, speed: 0.008, color: '#a7f3d0' },
-      { fromNode: 27, toNode: 15, progress: 0.65, speed: 0.008, color: '#34d399' },
-      { fromNode: 16, toNode: 18, progress: 0.3, speed: 0.008, color: '#facc15' },
-      { fromNode: 17, toNode: 19, progress: 0.7, speed: 0.007, color: '#2dd4bf' },
-      { fromNode: 18, toNode: 30, progress: 0.1, speed: 0.008, color: '#a7f3d0' },
-      { fromNode: 30, toNode: 21, progress: 0.5, speed: 0.009, color: '#6ee7b7' },
-      { fromNode: 20, toNode: 32, progress: 0.4, speed: 0.008, color: '#5eead4' },
-      { fromNode: 22, toNode: 105, progress: 0.3, speed: 0.008, color: '#2dd4bf' },
-      { fromNode: 105, toNode: 107, progress: 0.65, speed: 0.009, color: '#5eead4' },
-      { fromNode: 22, toNode: 106, progress: 0.4, speed: 0.008, color: '#facc15' },
-      { fromNode: 106, toNode: 108, progress: 0.75, speed: 0.008, color: '#eab308' },
+      { fromNode: 26, toNode: 12, progress: 0.2, speed: 0.009, color: '#f4f4f5' },
+      { fromNode: 26, toNode: 13, progress: 0.6, speed: 0.009, color: '#a1a1aa' },
+      { fromNode: 12, toNode: 14, progress: 0.45, speed: 0.008, color: '#d4d4d8' },
+      { fromNode: 13, toNode: 15, progress: 0.85, speed: 0.007, color: '#d4d4d8' },
+      { fromNode: 14, toNode: 27, progress: 0.25, speed: 0.008, color: '#f4f4f5' },
+      { fromNode: 27, toNode: 15, progress: 0.65, speed: 0.008, color: '#71717a' },
+      { fromNode: 16, toNode: 18, progress: 0.3, speed: 0.008, color: '#f4f4f5' },
+      { fromNode: 17, toNode: 19, progress: 0.7, speed: 0.007, color: '#a1a1aa' },
+      { fromNode: 18, toNode: 30, progress: 0.1, speed: 0.008, color: '#f4f4f5' },
+      { fromNode: 30, toNode: 21, progress: 0.5, speed: 0.009, color: '#e4e4e7' },
+      { fromNode: 20, toNode: 32, progress: 0.4, speed: 0.008, color: '#d4d4d8' },
+      { fromNode: 22, toNode: 105, progress: 0.3, speed: 0.008, color: '#a1a1aa' },
+      { fromNode: 105, toNode: 107, progress: 0.65, speed: 0.009, color: '#d4d4d8' },
+      { fromNode: 22, toNode: 106, progress: 0.4, speed: 0.008, color: '#f4f4f5' },
+      { fromNode: 106, toNode: 108, progress: 0.75, speed: 0.008, color: '#d4d4d8' },
     ];
 
     // Ambient floating particles
@@ -317,7 +335,7 @@ export function ConstellationCanvas({
         relY,
         baseRadius: isBright ? Math.random() * 1.5 + 1.2 : Math.random() * 0.9 + 0.5,
         alpha: isBright ? Math.random() * 0.45 + 0.4 : Math.random() * 0.22 + 0.08,
-        color: isAmber ? 'rgba(250, 204, 21, ' : 'rgba(52, 211, 153, ',
+        color: isAmber ? 'rgba(244, 244, 245, ' : 'rgba(113, 113, 122, ',
         vx: (Math.random() - 0.5) * 0.00015,
         vy: (Math.random() - 0.5) * 0.00012 - 0.00006,
       });
@@ -376,7 +394,7 @@ export function ConstellationCanvas({
       // Subtle mouse tilt: max ~6px displacement
       const mouseTiltX = mouse.active ? (currentRelX - 0.5) * 6 : 0;
       const axisX = width * activeCenterRatio + mouseTiltX;
-      const maxHelixRadius = isMobile ? Math.min(width * 0.38, 135) : Math.min(width * 0.20, 185);
+      const maxHelixRadius = isMobile ? Math.min(width * 0.40, 145) : Math.min(width * 0.23, 220);
 
       // Spiral rotation angle: strictly rotates with scroll, with reduced spiral amount (no idle auto-rotation)
       const scrollRotation = progressRef.current * Math.PI * 1.5; // ~0.75 turns across entire scroll
@@ -389,7 +407,11 @@ export function ConstellationCanvas({
         // Node angle along the spiral
         const nodeAngle =
           node.relY * Math.PI * 2 * node.helicalTurns + node.angleOffset + totalSpiralAngle;
-        const r = maxHelixRadius * node.radiusFactor;
+        // Deterministic per-node radial jitter (seeded by id) so nodes don't
+        // all sit on one perfectly clean helix curve — reads as a wider,
+        // more organic scatter instead of a strict spiral.
+        const radialJitter = 1 + Math.sin(node.id * 12.9898) * 0.22;
+        const r = maxHelixRadius * node.radiusFactor * radialJitter;
 
         // 3D coordinates
         let x3d = Math.cos(nodeAngle) * r;
@@ -435,6 +457,7 @@ export function ConstellationCanvas({
       let activeHoveredNode: ProjectedNode | null = null;
       if (isShiftedLeftRef.current && mouse.active) {
         const candidates = projectedNodes.filter((n) => {
+          if (!FEATURED_NODE_IDS.has(n.id)) return false;
           const dx = mouse.x - n.projX;
           const dy = mouse.y - n.projY;
           const hitRadius = Math.max(n.radius * n.perspective + 20, 30);
@@ -469,11 +492,20 @@ export function ConstellationCanvas({
             (selectedNodeIdRef.current !== null &&
               (node.id === selectedNodeIdRef.current || target.id === selectedNodeIdRef.current));
 
+          // Background nexus-hub nodes are pure ambient texture — skip
+          // drawing their connecting lines entirely (unless actively
+          // hovered/selected) so they never compete with the foreground
+          // spiral's own connecting lines.
+          const touchesNexusHub = nexusHubIds.has(node.id) || nexusHubIds.has(target.id);
+          if (touchesNexusHub && !isConnectedToHoveredOrSelected) return;
+
           const avgDepthT = (node.depthT + target.depthT) * 0.5;
-          const lineAlpha = isConnectedToHoveredOrSelected ? 0.95 : 0.22 + 0.65 * avgDepthT;
+          // Softer, sleeker lines: lower resting alpha, thinner strokes,
+          // always monochrome.
+          const lineAlpha = isConnectedToHoveredOrSelected ? 0.95 : 0.35 + 0.55 * avgDepthT;
           const lineWidth = isConnectedToHoveredOrSelected
-            ? 2.2 * Math.min(node.perspective, target.perspective)
-            : (0.8 + 1.0 * avgDepthT) * Math.min(node.perspective, target.perspective);
+            ? 1.9 * Math.min(node.perspective, target.perspective)
+            : (0.9 + 0.7 * avgDepthT) * Math.min(node.perspective, target.perspective);
 
           ctx.save();
           const grad = ctx.createLinearGradient(
@@ -483,24 +515,25 @@ export function ConstellationCanvas({
             target.projY
           );
           if (isConnectedToHoveredOrSelected) {
-            grad.addColorStop(0, '#ffffff');
-            grad.addColorStop(0.5, '#34d399');
-            grad.addColorStop(1, '#6ee7b7');
-            ctx.shadowColor = '#34d399';
-            ctx.shadowBlur = 10;
+            // Match the line's color to whichever node is actually
+            // hovered/selected, instead of always going white.
+            const activeNodeId = activeHoveredNode ? activeHoveredNode.id : selectedNodeIdRef.current;
+            const activeColor = activeNodeId === node.id ? node.color : target.color;
+            const activeGlow = activeNodeId === node.id ? node.glowColor : target.glowColor;
+            grad.addColorStop(0, activeColor);
+            grad.addColorStop(0.5, '#a1a1aa');
+            grad.addColorStop(1, activeColor);
+            ctx.shadowColor = activeGlow;
+            ctx.shadowBlur = 8;
           } else {
-            grad.addColorStop(0, node.glowColor);
-            grad.addColorStop(1, target.glowColor);
+            grad.addColorStop(0, 'rgba(255, 255, 255, 0.32)');
+            grad.addColorStop(1, 'rgba(255, 255, 255, 0.08)');
           }
 
           ctx.strokeStyle = grad;
           ctx.globalAlpha = lineAlpha;
           ctx.lineWidth = lineWidth;
-          if (isConnectedToHoveredOrSelected) {
-            ctx.setLineDash([]); // Solid line for active connection
-          } else {
-            ctx.setLineDash([3, 4]); // Dotted algorithmic line style
-          }
+          ctx.setLineDash([]); // Solid, uninterrupted line for a smoother, less busy look
           ctx.beginPath();
           ctx.moveTo(node.projX, node.projY);
           ctx.lineTo(target.projX, target.projY);
@@ -542,104 +575,160 @@ export function ConstellationCanvas({
         const isThisNodeSelected = selectedNodeIdRef.current === node.id;
         const isThisNodeActive = isThisNodeHovered || isThisNodeSelected;
 
-        const pulse = isThisNodeActive
-          ? Math.sin(time * 6) * 0.25 + 1.2
-          : Math.sin(time * 2 + node.pulsePhase) * 0.15 + 0.85;
-        const radius = node.radius * node.perspective * pulse;
-        const nodeAlpha = isThisNodeActive ? 1 : 0.45 + 0.55 * node.depthT;
+        // Smoothly lerp toward the active state instead of snapping,
+        // so hovering/unhovering a node fades in and out gradually.
+        const hoverMap = hoverTransitionRef.current;
+        const prevHoverT = hoverMap.get(node.id) ?? 0;
+        const targetHoverT = isThisNodeActive ? 1 : 0;
+        const hoverT = prevHoverT + (targetHoverT - prevHoverT) * 0.045;
+        hoverMap.set(node.id, hoverT);
+
+        const restingPulse = Math.sin(time * 2 + node.pulsePhase) * 0.15 + 0.85;
+        const activePulse = Math.sin(time * 3) * 0.03 + 1.05;
+        const pulse = restingPulse + (activePulse - restingPulse) * hoverT;
+        const isFeatured = FEATURED_NODE_IDS.has(node.id);
+        // Featured nodes render at a bigger, uniform size regardless of
+        // their individual base radius, so all three read as the same size.
+        const baseNodeRadius = isFeatured ? 11 : node.radius * 0.78;
+        const radius = baseNodeRadius * node.perspective * pulse;
+        const restingAlpha = 0.45 + 0.55 * node.depthT;
+        const nodeAlpha = restingAlpha + (1 - restingAlpha) * hoverT;
+        const isNexusHub = nexusHubIds.has(node.id);
+        const restingHaloMultiplier = isNexusHub ? 8.5 : 2.8;
+        const haloMultiplier = restingHaloMultiplier + (4.5 - restingHaloMultiplier) * hoverT;
 
         ctx.save();
         ctx.globalAlpha = nodeAlpha;
 
-        // Outer soft glow halo
+        // Outer soft glow halo — nexus-hub background nodes get a larger,
+        // softer bokeh-style halo than the crisp foreground strand nodes.
+        // Drawn in its resting color, then crossfaded toward white by
+        // layering a second white halo on top scaled by hoverT.
         const haloGrad = ctx.createRadialGradient(
           node.projX,
           node.projY,
           0,
           node.projX,
           node.projY,
-          radius * (isThisNodeActive ? 4.5 : 2.8)
+          radius * haloMultiplier
         );
-        haloGrad.addColorStop(0, isThisNodeActive ? '#ffffff' : node.glowColor);
-        haloGrad.addColorStop(0.4, isThisNodeActive ? '#34d399' : node.glowColor.replace(/[\d\.]+\)$/, '0.3)'));
+        haloGrad.addColorStop(0, node.glowColor);
+        haloGrad.addColorStop(0.4, node.glowColor.replace(/[\d\.]+\)$/, '0.3)'));
         haloGrad.addColorStop(1, 'rgba(0,0,0,0)');
 
         ctx.fillStyle = haloGrad;
         ctx.beginPath();
-        ctx.arc(node.projX, node.projY, radius * (isThisNodeActive ? 4.5 : 2.8), 0, Math.PI * 2);
+        ctx.arc(node.projX, node.projY, radius * haloMultiplier, 0, Math.PI * 2);
         ctx.fill();
 
-        // Node core circle
-        ctx.fillStyle = isThisNodeActive ? '#ffffff' : node.color;
+        if (hoverT > 0.01 && !isFeatured) {
+          const activeHaloGrad = ctx.createRadialGradient(
+            node.projX,
+            node.projY,
+            0,
+            node.projX,
+            node.projY,
+            radius * haloMultiplier
+          );
+          activeHaloGrad.addColorStop(0, '#ffffff');
+          activeHaloGrad.addColorStop(0.4, '#71717a');
+          activeHaloGrad.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.globalAlpha = nodeAlpha * hoverT;
+          ctx.fillStyle = activeHaloGrad;
+          ctx.beginPath();
+          ctx.arc(node.projX, node.projY, radius * haloMultiplier, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = nodeAlpha;
+        }
+
+        // Node core circle — resting color, crossfaded toward white with hoverT
+        ctx.fillStyle = node.color;
         ctx.beginPath();
         ctx.arc(node.projX, node.projY, radius, 0, Math.PI * 2);
         ctx.fill();
+
+        if (hoverT > 0.01 && !isFeatured) {
+          ctx.globalAlpha = nodeAlpha * hoverT;
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(node.projX, node.projY, radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = nodeAlpha;
+        }
 
         // If node has content/tooltip attached, draw an interactive marker ring
         const trait = getCornTrait(node.id);
         const hasContent = Boolean(trait);
 
-        if (hasContent && !isThisNodeActive) {
-          const markerRadius = radius * (isShiftedLeftRef.current ? 1.95 : 1.75);
-          const beaconPulse = Math.sin(time * 2.5 + node.pulsePhase) * 0.15 + 0.85;
-          const markerAlpha = (isShiftedLeftRef.current ? 0.65 : 0.38) * (0.4 + 0.6 * node.depthT) * beaconPulse;
+        if (hasContent && FEATURED_NODE_IDS.has(node.id) && hoverT < 0.98 && isShiftedLeftRef.current) {
+          // Sleek, understated interactive marker: a single thin solid ring
+          // sitting close to the node — just enough to draw the eye, no
+          // dashes, satellites, or tick marks.
+          // Fixed base size (scaled only by 3D perspective, not by each
+          // node's own radius) so all featured markers read as the same size.
+          const markerRadius = 34 * node.perspective;
+          // Slower, barely-there breathing pulse
+          const beaconPulse = Math.sin(time * 1.0 + node.pulsePhase) * 0.015 + 0.78;
+          // Fades out gradually as the node becomes hovered/selected
+          const markerAlpha = 0.4 * (0.4 + 0.6 * node.depthT) * beaconPulse * (1 - hoverT);
 
           ctx.save();
           ctx.globalAlpha = markerAlpha;
-          ctx.strokeStyle = node.color;
-          ctx.lineWidth = Math.max(1.0 * node.perspective, 0.8);
-          ctx.shadowColor = node.glowColor;
-          ctx.shadowBlur = 6 * node.perspective;
 
-          // 1. Concentric thin dashed interactive marker ring
-          ctx.setLineDash([2.5, 3.5]);
+          // Glassmorphic frosted disc fill — a soft tinted lens rather than
+          // a bare outline
+          const glassGrad = ctx.createRadialGradient(
+            node.projX,
+            node.projY,
+            markerRadius * 0.15,
+            node.projX,
+            node.projY,
+            markerRadius
+          );
+          glassGrad.addColorStop(0, 'rgba(255, 255, 255, 0.025)');
+          glassGrad.addColorStop(0.7, node.glowColor.replace(/[\d.]+\)$/, '0.025)'));
+          glassGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+          ctx.fillStyle = glassGrad;
+          ctx.beginPath();
+          ctx.arc(node.projX, node.projY, markerRadius, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Hairline glass rim
+          ctx.strokeStyle = node.color;
+          ctx.lineWidth = Math.max(0.9 * node.perspective, 0.7);
+          ctx.shadowColor = node.glowColor;
+          ctx.shadowBlur = 4 * node.perspective;
+          ctx.setLineDash([]);
           ctx.beginPath();
           ctx.arc(node.projX, node.projY, markerRadius, 0, Math.PI * 2);
           ctx.stroke();
 
-          // 2. Orbital micro-satellite pip / marker dot indicating clickable data
-          const orbAngle = time * 1.2 + node.pulsePhase * 2;
-          const satX = node.projX + Math.cos(orbAngle) * markerRadius;
-          const satY = node.projY + Math.sin(orbAngle) * markerRadius;
-
-          ctx.fillStyle = '#ffffff';
-          ctx.shadowColor = '#ffffff';
-          ctx.shadowBlur = 5;
+          // Subtle top-left specular highlight arc, like light catching glass
+          ctx.globalAlpha = markerAlpha * 0.35;
+          ctx.shadowBlur = 0;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
           ctx.beginPath();
-          ctx.arc(satX, satY, Math.max(1.5 * node.perspective, 1.2), 0, Math.PI * 2);
-          ctx.fill();
-
-          // 3. Subtle cardinal notch ticks for precision look in explore mode
-          if (isShiftedLeftRef.current) {
-            ctx.setLineDash([]);
-            const tickDist = markerRadius + 2.5;
-            const tickSize = 2.5 * node.perspective;
-            const cardinalAngles = [0, Math.PI * 0.5, Math.PI, Math.PI * 1.5];
-
-            cardinalAngles.forEach((ang) => {
-              const cosA = Math.cos(ang);
-              const sinA = Math.sin(ang);
-              ctx.beginPath();
-              ctx.moveTo(node.projX + cosA * (tickDist - tickSize), node.projY + sinA * (tickDist - tickSize));
-              ctx.lineTo(node.projX + cosA * (tickDist + tickSize), node.projY + sinA * (tickDist + tickSize));
-              ctx.stroke();
-            });
-          }
+          ctx.arc(node.projX, node.projY, markerRadius, Math.PI * 1.1, Math.PI * 1.6);
+          ctx.stroke();
 
           ctx.restore();
         }
 
-        // If active (hovered or selected), draw precision targeting reticle crosshair around node
-        if (isThisNodeActive) {
+        // If active (hovered or selected), draw precision targeting reticle
+        // crosshair around node — faded in/out gradually via hoverT rather
+        // than snapping into view.
+        if (hoverT > 0.02) {
           const reticleRadius = radius * 2.6;
           ctx.save();
-          ctx.strokeStyle = isThisNodeSelected ? '#a7f3d0' : '#34d399';
+          ctx.globalAlpha = hoverT;
+          ctx.strokeStyle = node.color;
           ctx.lineWidth = isThisNodeSelected ? 2.0 : 1.5;
-          ctx.shadowColor = '#34d399';
+          ctx.shadowColor = node.glowColor;
           ctx.shadowBlur = isThisNodeSelected ? 16 : 12;
 
-          // Rotating outer ring with 4 arc segments
-          const rot = time * 2;
+          // Rotating outer ring with 4 arc segments — slowed down, and no
+          // corner tick marks cluttering the space around it.
+          const rot = time * 0.6;
           for (let i = 0; i < 4; i++) {
             const startAng = rot + (i * Math.PI) / 2 + 0.2;
             const endAng = rot + ((i + 1) * Math.PI) / 2 - 0.2;
@@ -648,29 +737,14 @@ export function ConstellationCanvas({
             ctx.stroke();
           }
 
-          // Corner tick marks
-          const tickLen = isThisNodeSelected ? 8 : 6;
-          const offsets = [
-            [-reticleRadius - 4, 0, -reticleRadius - 4 - tickLen, 0],
-            [reticleRadius + 4, 0, reticleRadius + 4 + tickLen, 0],
-            [0, -reticleRadius - 4, 0, -reticleRadius - 4 - tickLen],
-            [0, reticleRadius + 4, 0, reticleRadius + 4 + tickLen],
-          ];
-          offsets.forEach(([x1, y1, x2, y2]) => {
-            ctx.beginPath();
-            ctx.moveTo(node.projX + x1, node.projY + y1);
-            ctx.lineTo(node.projX + x2, node.projY + y2);
-            ctx.stroke();
-          });
-
           ctx.restore();
         }
 
         // Specular glint for nodes facing forward (depthT > 0.4)
-        if (node.depthT > 0.4 || isThisNodeActive) {
-          ctx.fillStyle = isThisNodeActive
-            ? 'rgba(255, 255, 255, 0.95)'
-            : `rgba(255, 255, 255, ${0.4 + 0.5 * node.depthT})`;
+        if (node.depthT > 0.4 || hoverT > 0.01) {
+          const restingGlintAlpha = 0.4 + 0.5 * node.depthT;
+          const glintAlpha = restingGlintAlpha + (0.95 - restingGlintAlpha) * hoverT;
+          ctx.fillStyle = `rgba(255, 255, 255, ${glintAlpha})`;
           ctx.beginPath();
           ctx.arc(
             node.projX - radius * 0.25,
@@ -700,37 +774,10 @@ export function ConstellationCanvas({
   }, [activeSlide]);
 
   return (
-    <>
-      <canvas
-        ref={canvasRef}
-        id="algorithm-constellation-canvas"
-        className={`absolute inset-0 w-full h-full pointer-events-auto ${className}`}
-      />
-
-      {/* Floating HUD Guidance in Explore Library Mode */}
-      <AnimatePresence>
-        {isShiftedLeft && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 12 }}
-            transition={{ delay: 0.35, duration: 0.45 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none flex items-center gap-2.5 px-4 py-2 rounded-full bg-slate-950/80 border border-emerald-500/30 backdrop-blur-md shadow-[0_12px_32px_rgba(0,0,0,0.7)] text-slate-300 text-xs"
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-            </span>
-            <span className="font-mono text-emerald-400 font-semibold uppercase tracking-wider text-[11px]">
-              Explore Mode
-            </span>
-            <span className="text-slate-600">|</span>
-            <span className="text-slate-300">
-              Hover over nodes to illuminate pathways • Click a node to view corn trait card
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+    <canvas
+      ref={canvasRef}
+      id="algorithm-constellation-canvas"
+      className={`absolute inset-0 w-full h-full pointer-events-auto ${className}`}
+    />
   );
 }

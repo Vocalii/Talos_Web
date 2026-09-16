@@ -53,7 +53,7 @@ export function PlaceholderSection2({ contentY, contentOpacity }: PlaceholderSec
       id="placeholder-section-2-container"
       style={{
         background:
-          'radial-gradient(ellipse 90% 75% at 50% 45%, #F4F6FD 0%, #EDF1FA 55%, #E5EBF8 100%)',
+          'radial-gradient(ellipse 90% 75% at 50% 45%, #141414 0%, #0a0a0a 55%, #050505 100%)',
       }}
       className="relative w-full h-full min-h-screen overflow-hidden select-none flex flex-col items-center justify-center text-center px-6"
     >
@@ -67,7 +67,7 @@ export function PlaceholderSection2({ contentY, contentOpacity }: PlaceholderSec
         {/* Main Headline matching picture */}
         <h2
           id="download-app-headline"
-          className="font-sans font-bold text-4xl sm:text-6xl md:text-7xl lg:text-[5.25rem] text-[#1923BA] tracking-[-0.035em] leading-[1.06] text-center"
+          className="font-display font-bold text-4xl sm:text-6xl md:text-7xl lg:text-[5.25rem] text-white tracking-[-0.035em] leading-[1.06] text-center"
         >
           Download the app
           <br />
@@ -83,17 +83,17 @@ export function PlaceholderSection2({ contentY, contentOpacity }: PlaceholderSec
           <button
             id="btn-soon-app-store"
             onClick={() => handleNotify('App Store')}
-            className="group relative flex items-center gap-3.5 px-6 sm:px-7 py-3.5 sm:py-4 rounded-2xl bg-white/40 hover:bg-white/80 border border-[#D0D6F0] hover:border-[#1923BA]/35 shadow-[0_2px_12px_rgba(25,35,186,0.03)] hover:shadow-[0_8px_24px_rgba(25,35,186,0.08)] transition-all duration-200 cursor-pointer active:scale-95"
+            className="group relative flex items-center gap-3.5 px-6 sm:px-7 py-3.5 sm:py-4 rounded-2xl glass hover:bg-white/10 transition-all duration-200 cursor-pointer active:scale-95"
             aria-label="Soon on App Store"
           >
-            <div className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center text-[#4B57B8] group-hover:text-[#1923BA] transition-colors duration-200">
+            <div className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center text-white/70 group-hover:text-white transition-colors duration-200">
               <AppleLogoIcon className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="text-left">
-              <div className="text-[11px] sm:text-xs font-medium text-[#6571B8] leading-tight">
+              <div className="text-[11px] sm:text-xs font-medium text-white/50 leading-tight">
                 Soon on
               </div>
-              <div className="text-sm sm:text-base font-semibold text-[#1923BA] leading-tight mt-0.5">
+              <div className="text-sm sm:text-base font-semibold text-white leading-tight mt-0.5">
                 App Store
               </div>
             </div>
@@ -103,17 +103,17 @@ export function PlaceholderSection2({ contentY, contentOpacity }: PlaceholderSec
           <button
             id="btn-soon-google-play"
             onClick={() => handleNotify('Google Play')}
-            className="group relative flex items-center gap-3.5 px-6 sm:px-7 py-3.5 sm:py-4 rounded-2xl bg-white/40 hover:bg-white/80 border border-[#D0D6F0] hover:border-[#1923BA]/35 shadow-[0_2px_12px_rgba(25,35,186,0.03)] hover:shadow-[0_8px_24px_rgba(25,35,186,0.08)] transition-all duration-200 cursor-pointer active:scale-95"
+            className="group relative flex items-center gap-3.5 px-6 sm:px-7 py-3.5 sm:py-4 rounded-2xl glass hover:bg-white/10 transition-all duration-200 cursor-pointer active:scale-95"
             aria-label="Soon on Google Play"
           >
             <div className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
               <GooglePlayLogoIcon className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="text-left">
-              <div className="text-[11px] sm:text-xs font-medium text-[#6571B8] leading-tight">
+              <div className="text-[11px] sm:text-xs font-medium text-white/50 leading-tight">
                 Soon on
               </div>
-              <div className="text-sm sm:text-base font-semibold text-[#1923BA] leading-tight mt-0.5">
+              <div className="text-sm sm:text-base font-semibold text-white leading-tight mt-0.5">
                 Google Play
               </div>
             </div>
@@ -128,9 +128,9 @@ export function PlaceholderSection2({ contentY, contentOpacity }: PlaceholderSec
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -8, scale: 0.95 }}
               transition={{ duration: 0.25 }}
-              className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1923BA] text-white text-xs font-medium shadow-lg shadow-[#1923BA]/20"
+              className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-white text-xs font-medium shadow-lg shadow-black/40"
             >
-              <Check className="w-3.5 h-3.5 text-emerald-300" />
+              <Check className="w-3.5 h-3.5 text-zinc-200" />
               <span>We'll notify you when available on {notifiedStore}!</span>
             </motion.div>
           )}

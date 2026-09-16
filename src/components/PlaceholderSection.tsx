@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, MouseEvent, TouchEvent } from 'react';
 import { motion, AnimatePresence, MotionValue, useMotionValue, useSpring, useTransform } from 'motion/react';
-import { X, Sparkles, ShieldCheck, ChevronRight } from 'lucide-react';
+import { X, Sparkles, ShieldCheck } from 'lucide-react';
 import { LiquidPullText } from './LiquidPullText';
+import { ExploreLibraryButton } from './ExploreLibraryButton';
 
 interface ProductData {
   id: number;
@@ -147,6 +148,8 @@ interface PlaceholderSectionProps {
   mouseX?: MotionValue<number>;
   mouseY?: MotionValue<number>;
   isRevealed?: boolean;
+  isFeaturesExploreActive?: boolean;
+  onFeaturesExploreActiveChange?: (active: boolean) => void;
 }
 
 export function PlaceholderSection({
@@ -157,11 +160,44 @@ export function PlaceholderSection({
   mouseX: externalMouseX,
   mouseY: externalMouseY,
   isRevealed = true,
+  isFeaturesExploreActive = false,
+  onFeaturesExploreActiveChange,
 }: PlaceholderSectionProps) {
   // Active product state (QROME® PRODUCTS)
   const selectedProductIndex = 2;
-  const [isLearnMoreOpen, setIsLearnMoreOpen] = useState(false);
   const [isHotspotOpen, setIsHotspotOpen] = useState(false);
+  const setIsFeaturesExploreActive = (active: boolean) => onFeaturesExploreActiveChange?.(active);
+
+  // Lock vertical scrolling while the features panel is active, without
+  // touching body overflow, so scroll position is preserved on close.
+  useEffect(() => {
+    if (!isFeaturesExploreActive) return;
+
+    const preventScrollWheel = (e: WheelEvent) => {
+      e.preventDefault();
+    };
+    const preventScrollTouch = (e: globalThis.TouchEvent) => {
+      e.preventDefault();
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsFeaturesExploreActive(false);
+      }
+      if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(e.key)) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener('wheel', preventScrollWheel, { passive: false });
+    window.addEventListener('touchmove', preventScrollTouch, { passive: false });
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('wheel', preventScrollWheel);
+      window.removeEventListener('touchmove', preventScrollTouch);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isFeaturesExploreActive]);
 
   // Normalized entry progress: use provided entryProgress, or fallback
   const fallbackEntry = useMotionValue(1);
@@ -498,70 +534,191 @@ export function PlaceholderSection({
               rotateX: textTiltRotateX,
               rotateY: textTiltRotateY,
             }}
-            className="w-full lg:w-[48%] xl:w-[46%] text-left z-20 pointer-events-auto [transform:translateZ(8px)]"
+            className="w-full lg:w-[48%] xl:w-[46%] text-left z-20 pointer-events-auto [transform:translateZ(8px)] relative"
           >
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentProduct.id}
-                initial="hidden"
-                animate={isRevealed ? 'visible' : 'hidden'}
-                exit="exit"
-              >
-                {/* Brand & Product Headline with enhanced shadow and 3D depth */}
-                <h2
-                  id="product-section-headline"
-                  className="font-display font-black text-3xl sm:text-5xl md:text-6xl lg:text-[3.8rem] xl:text-[4.4rem] tracking-tight uppercase text-white leading-[0.94] drop-shadow-[0_15px_35px_rgba(0,0,0,0.9)] select-none"
-                >
-                  <motion.span
-                    variants={productHeadlineVariants}
-                    className="block drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] will-change-[filter,opacity,transform]"
-                  >
-                    <LiquidPullText
-                      text={currentProduct.brand}
-                      maxPull={1}
-                      maxBlur={5}
-                      radius={120}
-                      lerpFactor={0.12}
-                    />
-                  </motion.span>
-                  <motion.span
-                    variants={productHeadlineVariants}
-                    className="block mt-1 sm:mt-2 text-white drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] origin-left will-change-[filter,opacity,transform]"
-                  >
-                    <LiquidPullText
-                      text={currentProduct.name}
-                      maxPull={1}
-                      maxBlur={5}
-                      radius={120}
-                      lerpFactor={0.12}
-                    />
-                  </motion.span>
-                </h2>
-
-                {/* Body Paragraph */}
-                <motion.p
-                  id="product-section-description"
-                  variants={productDescVariants}
-                  className="mt-5 sm:mt-7 text-xs sm:text-sm md:text-[15px] lg:text-[16px] font-normal text-zinc-200/90 leading-relaxed max-w-xl drop-shadow-[0_3px_10px_rgba(0,0,0,0.85)] will-change-[filter,opacity,transform] select-none"
-                >
-                  {currentProduct.description}
-                </motion.p>
-
-                {/* LEARN MORE Action Link */}
+            {/* Headline / description / CTA — fades and pulls back when the
+                features panel is active, mirroring how the Contenders
+                section's own text recedes in Explore Mode. */}
+            <motion.div
+              animate={{
+                opacity: isFeaturesExploreActive ? 0 : 1,
+                x: isFeaturesExploreActive ? -60 : 0,
+                filter: isFeaturesExploreActive ? 'blur(12px)' : 'blur(0px)',
+                scale: isFeaturesExploreActive ? 0.94 : 1,
+                pointerEvents: isFeaturesExploreActive ? 'none' : 'auto',
+              }}
+              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <AnimatePresence mode="wait">
                 <motion.div
-                  variants={productCtaVariants}
-                  className="mt-6 sm:mt-8 will-change-[filter,opacity,transform]"
+                  key={currentProduct.id}
+                  initial="hidden"
+                  animate={isRevealed ? 'visible' : 'hidden'}
+                  exit="exit"
                 >
-                  <button
-                    id="product-learn-more-btn"
-                    onClick={() => setIsLearnMoreOpen(true)}
-                    className="group inline-flex items-center gap-2 text-xs sm:text-sm font-bold tracking-[0.2em] uppercase text-white hover:text-amber-300 transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-amber-400/50"
+                  {/* Brand & Product Headline with enhanced shadow and 3D depth */}
+                  <h2
+                    id="product-section-headline"
+                    className="font-display font-medium text-2xl sm:text-3xl md:text-4xl lg:text-5xl tracking-wide uppercase text-white leading-[1.1] drop-shadow-[0_15px_35px_rgba(0,0,0,0.9)] select-none"
                   >
-                    <span>LEARN MORE</span>
-                    <ChevronRight className="w-4 h-4 text-white/70 group-hover:text-amber-300 group-hover:translate-x-1.5 transition-all duration-200" />
-                  </button>
+                    <motion.span
+                      variants={productHeadlineVariants}
+                      className="block drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] will-change-[filter,opacity,transform]"
+                    >
+                      <LiquidPullText
+                        text={currentProduct.brand}
+                        maxPull={1}
+                        maxBlur={5}
+                        radius={120}
+                        lerpFactor={0.12}
+                      />
+                    </motion.span>
+                    <motion.span
+                      variants={productHeadlineVariants}
+                      className="block mt-1 sm:mt-2 text-white drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] origin-left will-change-[filter,opacity,transform]"
+                    >
+                      <LiquidPullText
+                        text={currentProduct.name}
+                        maxPull={1}
+                        maxBlur={5}
+                        radius={120}
+                        lerpFactor={0.12}
+                      />
+                    </motion.span>
+                  </h2>
+
+                  {/* Body Paragraph */}
+                  <motion.p
+                    id="product-section-description"
+                    variants={productDescVariants}
+                    className="mt-5 sm:mt-7 text-sm sm:text-base font-light text-white/75 tracking-[0.02em] leading-relaxed max-w-xl drop-shadow-[0_3px_10px_rgba(0,0,0,0.85)] will-change-[filter,opacity,transform] select-none"
+                  >
+                    {currentProduct.description}
+                  </motion.p>
+
+                  {/* View The Features Action */}
+                  <motion.div
+                    variants={productCtaVariants}
+                    className="mt-6 sm:mt-8 will-change-[filter,opacity,transform]"
+                  >
+                    <ExploreLibraryButton
+                      id="view-the-features-btn"
+                      onClick={() => setIsFeaturesExploreActive(true)}
+                      ariaLabel="View the Features"
+                      lineOne="VIEW THE"
+                      lineTwo="FEATURES"
+                    />
+                  </motion.div>
                 </motion.div>
-              </motion.div>
+              </AnimatePresence>
+            </motion.div>
+
+            {/* In-place Features Panel — replaces the old modal dialog.
+                Scroll stays locked to this section (see the effect above)
+                and the panel slides/blurs into the same space the headline
+                just vacated, instead of opening a full-screen overlay. */}
+            <AnimatePresence>
+              {isFeaturesExploreActive && (
+                <motion.div
+                  key="features-panel"
+                  initial={{ opacity: 0, x: 44, scale: 0.94, filter: 'blur(16px)' }}
+                  animate={{ opacity: 1, x: 0, scale: 1, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, x: 32, scale: 0.95, filter: 'blur(10px)' }}
+                  transition={{ duration: 0.5, ease: [0.19, 1, 0.22, 1] }}
+                  className="absolute inset-0 text-white pointer-events-auto flex flex-col"
+                >
+                  {/* Panel Header — same treatment as the headline it replaces */}
+                  <div>
+                    <span className="text-[11px] font-mono uppercase tracking-[0.25em] text-white/70">
+                      {currentProduct.brand}
+                    </span>
+                    <h3 className="mt-1 font-display font-medium text-2xl sm:text-3xl md:text-4xl uppercase tracking-wide text-white leading-[1.1] drop-shadow-[0_15px_35px_rgba(0,0,0,0.9)]">
+                      {currentProduct.name}
+                    </h3>
+                  </div>
+
+                  {/* Key Agronomic Metrics */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6 mt-6 mb-5">
+                    <div>
+                      <div className="text-[10px] font-mono text-white/50 uppercase tracking-wider">Above-Ground</div>
+                      <div className="mt-1 font-display font-medium text-lg sm:text-xl text-white">
+                        {currentProduct.modesAbove} Modes
+                      </div>
+                      <div className="text-[10px] text-white/50">Targeted insect action</div>
+                    </div>
+
+                    <div>
+                      <div className="text-[10px] font-mono text-white/50 uppercase tracking-wider">Below-Ground</div>
+                      <div className="mt-1 font-display font-medium text-lg sm:text-xl text-white">
+                        {currentProduct.modesBelow} Modes
+                      </div>
+                      <div className="text-[10px] text-white/50">Corn rootworm protection</div>
+                    </div>
+
+                    <div className="col-span-2 sm:col-span-1">
+                      <div className="text-[10px] font-mono text-white/50 uppercase tracking-wider">Yield Advantage</div>
+                      <div className="mt-1 font-display font-medium text-lg sm:text-xl text-white">
+                        {currentProduct.yieldAdvantage}
+                      </div>
+                      <div className="text-[10px] text-white/50">vs {currentProduct.comparisonTech}</div>
+                    </div>
+                  </div>
+
+                  {/* Key Features List */}
+                  <div className="space-y-2.5">
+                    <h4 className="text-xs font-medium uppercase tracking-wider text-white/60">
+                      Technology Highlights
+                    </h4>
+                    {currentProduct.keyFeatures.map((feat, idx) => (
+                      <div key={idx} className="flex items-start gap-3 text-xs sm:text-sm font-light text-white/80">
+                        <ShieldCheck className="w-4 h-4 text-white/70 mt-0.5 flex-shrink-0" />
+                        <span>{feat}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Placeholder Action Buttons — same component as "View
+                      The Features" but the 'secondary' variant (no outer
+                      breathing ring, no float, dimmer glass) so this trio
+                      reads as clearly subordinate to the primary CTA. */}
+                  <div className="mt-6 flex items-center gap-4 sm:gap-6">
+                    <div className="scale-[0.85] sm:scale-[0.9] origin-left -mr-2 sm:-mr-3">
+                      <ExploreLibraryButton
+                        id="view-specs-btn"
+                        ariaLabel="View Specs"
+                        lineOne="VIEW"
+                        lineTwo="SPECS"
+                        variant="secondary"
+                      />
+                    </div>
+                    <div className="scale-[0.85] sm:scale-[0.9] origin-left -mr-2 sm:-mr-3">
+                      <ExploreLibraryButton
+                        id="compare-traits-btn"
+                        ariaLabel="Compare Traits"
+                        lineOne="COMPARE"
+                        lineTwo="TRAITS"
+                        variant="secondary"
+                      />
+                    </div>
+                    <div className="scale-[0.85] sm:scale-[0.9] origin-left">
+                      <ExploreLibraryButton
+                        id="find-a-dealer-btn"
+                        ariaLabel="Find A Dealer"
+                        lineOne="FIND A"
+                        lineTwo="DEALER"
+                        variant="secondary"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Footnote citation */}
+                  <div className="mt-6 text-[10px] text-white/40 leading-relaxed">
+                    <span className="font-medium text-white/60">{currentProduct.footnote}</span> Data based on
+                    2020 on-farm trial comparisons. Individual results may vary based on weather, soil
+                    composition, and local pest pressure. Always read and follow all label directions.
+                  </div>
+                </motion.div>
+              )}
             </AnimatePresence>
           </motion.div>
 
@@ -790,98 +947,6 @@ export function PlaceholderSection({
       </motion.div>
 
       {/* =========================================================================
-          PRODUCT DETAILS MODAL: "LEARN MORE"
-          ========================================================================= */}
-      <AnimatePresence>
-        {isLearnMoreOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.94, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: 20 }}
-              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              className="relative w-full max-w-2xl bg-[#06150d] border border-emerald-500/30 rounded-2xl p-6 sm:p-8 text-white shadow-[0_20px_60px_rgba(0,0,0,0.9)] overflow-hidden"
-            >
-              {/* Background ambient glow */}
-              <div
-                className="absolute -top-24 -right-24 w-72 h-72 rounded-full pointer-events-none opacity-40"
-                style={{
-                  background: 'radial-gradient(circle, rgba(245,158,11,0.5) 0%, transparent 70%)',
-                }}
-              />
-
-              {/* Close Button */}
-              <button
-                id="close-learn-more-modal-btn"
-                onClick={() => setIsLearnMoreOpen(false)}
-                className="absolute top-5 right-5 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors cursor-pointer"
-                aria-label="Close modal"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              {/* Modal Header */}
-              <div className="pr-10">
-                <span className="text-[11px] font-mono uppercase tracking-[0.25em] text-emerald-400">
-                  {currentProduct.brand}
-                </span>
-                <h3 className="mt-1 font-display font-black text-2xl sm:text-3xl uppercase tracking-tight text-white">
-                  {currentProduct.name}
-                </h3>
-              </div>
-
-              {/* Key Agronomic Metrics */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 my-6">
-                <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/10">
-                  <div className="text-[11px] font-mono text-zinc-400 uppercase">Above-Ground</div>
-                  <div className="mt-1 font-display font-bold text-xl sm:text-2xl text-emerald-300">
-                    {currentProduct.modesAbove} Modes
-                  </div>
-                  <div className="text-[10px] text-zinc-400">Targeted insect action</div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/10">
-                  <div className="text-[11px] font-mono text-zinc-400 uppercase">Below-Ground</div>
-                  <div className="mt-1 font-display font-bold text-xl sm:text-2xl text-emerald-300">
-                    {currentProduct.modesBelow} Modes
-                  </div>
-                  <div className="text-[10px] text-zinc-400">Corn rootworm protection</div>
-                </div>
-
-                <div className="col-span-2 sm:col-span-1 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
-                  <div className="text-[11px] font-mono text-amber-300/80 uppercase">Yield Advantage</div>
-                  <div className="mt-1 font-display font-bold text-xl sm:text-2xl text-amber-300">
-                    {currentProduct.yieldAdvantage}
-                  </div>
-                  <div className="text-[10px] text-zinc-400">vs {currentProduct.comparisonTech}</div>
-                </div>
-              </div>
-
-              {/* Key Features List */}
-              <div className="space-y-2.5 my-6">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-300">
-                  Technology Highlights
-                </h4>
-                {currentProduct.keyFeatures.map((feat, idx) => (
-                  <div key={idx} className="flex items-start gap-3 text-xs sm:text-sm text-zinc-200">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                    <span>{feat}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Footnote citation */}
-              <div className="mt-6 pt-4 border-t border-white/10 text-[11px] text-zinc-400/80 leading-relaxed">
-                <span className="font-semibold text-zinc-300">{currentProduct.footnote}</span> Data based on
-                2020 on-farm trial comparisons. Individual results may vary based on weather, soil
-                composition, and local pest pressure. Always read and follow all label directions.
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* =========================================================================
           KERNEL TRAIT HOTSPOT INSPECTION MODAL
           ========================================================================= */}
       <AnimatePresence>
@@ -891,7 +956,7 @@ export function PlaceholderSection({
               initial={{ opacity: 0, scale: 0.94 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.94 }}
-              className="relative w-full max-w-lg bg-[#041209] border border-amber-500/40 rounded-2xl p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,0.9)]"
+              className="relative w-full max-w-lg bg-[#041209] border border-zinc-400/40 rounded-2xl p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,0.9)]"
             >
               <button
                 id="close-hotspot-modal-btn"
@@ -902,7 +967,7 @@ export function PlaceholderSection({
                 <X className="w-4 h-4" />
               </button>
 
-              <div className="flex items-center gap-2 text-amber-400 text-xs font-mono uppercase tracking-widest">
+              <div className="flex items-center gap-2 text-zinc-300 text-xs font-mono uppercase tracking-widest">
                 <Sparkles className="w-4 h-4" />
                 <span>Genomic Trait Hotspot</span>
               </div>
@@ -920,11 +985,11 @@ export function PlaceholderSection({
               <div className="mt-5 p-4 rounded-xl bg-white/[0.03] border border-white/10 space-y-2 text-xs font-mono text-zinc-300">
                 <div className="flex justify-between">
                   <span className="text-zinc-400">Current Hybrid:</span>
-                  <span className="text-amber-300 font-bold">{currentProduct.name}</span>
+                  <span className="text-zinc-200 font-bold">{currentProduct.name}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-zinc-400">Active Insect Modes:</span>
-                  <span className="text-emerald-300 font-bold">
+                  <span className="text-zinc-200 font-bold">
                     {currentProduct.modesAbove + currentProduct.modesBelow} Total
                   </span>
                 </div>
