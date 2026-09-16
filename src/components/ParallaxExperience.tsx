@@ -990,7 +990,7 @@ export function ParallaxExperience() {
               className="absolute -inset-[6%] z-0 pointer-events-none"
             >
               <img
-                src="/hero-corn.jpg"
+                src="/hero-corn.png"
                 alt="Revolutionary Pioneer Corn Ear"
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover object-center"

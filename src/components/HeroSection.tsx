@@ -175,7 +175,7 @@ export function HeroSection({ onExploreNext }: HeroSectionProps = {}) {
           className="absolute -inset-[4%] z-0 scale-[1.06] pointer-events-none transition-[filter] duration-200"
         >
           <img
-            src="/hero-corn.jpg"
+            src="/Users/jontetaffe/Landing/src/assets/images/hero.png"
             alt="Revolutionary Pioneer Corn Ear"
             referrerPolicy="no-referrer"
             className="w-full h-full object-cover object-center"
