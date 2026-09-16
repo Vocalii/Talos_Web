@@ -14,7 +14,11 @@ interface Particle {
   alpha: number;
   targetAlpha: number;
   pulseSpeed: number;
-  isHexBokeh: boolean;
+  isBokeh: boolean;
+  hasStarGlint: boolean;
+  twinklePhase: number;
+  twinkleSpeed: number;
+  isCosmicStream: boolean;
   mass: number;
 }
 
@@ -43,7 +47,7 @@ export function ParticleField() {
     let width = 0;
     let height = 0;
 
-    // Mouse state with smooth interpolation
+    // Mouse state with smooth damping
     const mouse = {
       x: -1000,
       y: -1000,
@@ -53,7 +57,7 @@ export function ParticleField() {
       prevY: -1000,
       speed: 0,
       active: false,
-      radius: 180, // influence radius
+      radius: 220, // expanded aerodynamic influence radius
     };
 
     const handleResize = () => {
@@ -71,69 +75,110 @@ export function ParticleField() {
     handleResize();
     window.addEventListener('resize', handleResize);
 
-    // Emerald accent bokeh, matching the Talos app's accent green.
+    // Color palette refined with more pure diamond starlight and soft platinum tones to keep the header and scene clean
     const palette = [
-      { base: 'rgba(34, 197, 94, ', glow: 'rgba(34, 197, 94, 0.4)' },
-      { base: 'rgba(74, 222, 128, ', glow: 'rgba(74, 222, 128, 0.35)' },
-      { base: 'rgba(16, 150, 72, ', glow: 'rgba(16, 150, 72, 0.35)' },
-      { base: 'rgba(134, 239, 172, ', glow: 'rgba(110, 231, 183, 0.3)' },
-      { base: 'rgba(220, 252, 231, ', glow: 'rgba(74, 222, 128, 0.45)' },
+      // Pure diamond starlight (dominant)
+      { base: 'rgba(255, 255, 255, ', glow: 'rgba(255, 255, 255, 0.45)' },
+      // Crisp silver-white
+      { base: 'rgba(240, 248, 245, ', glow: 'rgba(220, 240, 235, 0.30)' },
+      // Subtle mint highlight (soft, desaturated)
+      { base: 'rgba(167, 243, 208, ', glow: 'rgba(110, 231, 183, 0.22)' },
+      // Delicate celestial emerald whisper
+      { base: 'rgba(52, 211, 153, ', glow: 'rgba(52, 211, 153, 0.20)' },
+      // Icy crystalline stardust
+      { base: 'rgba(204, 251, 241, ', glow: 'rgba(153, 246, 228, 0.22)' },
     ];
 
-    // Well-balanced particle count: rich enough to create ambient depth, clean enough not to clutter (~36-44 total)
-    const particleCount = Math.min(Math.floor((window.innerWidth * window.innerHeight) / 38000) + 24, 42);
+    // Rich cinematic density: 55-80 particles balanced for performance and visual grandeur
+    const particleCount = Math.min(Math.floor((window.innerWidth * window.innerHeight) / 22000) + 36, 76);
     const particles: Particle[] = [];
 
     for (let i = 0; i < particleCount; i++) {
-      const isLargeBokeh = Math.random() < 0.22; // subtle soft bokeh motes
+      // 45% of particles are concentrated in the right-side cosmic nebula spray
+      const isCosmicStream = i < Math.floor(particleCount * 0.45);
+      const isBokeh = Math.random() < 0.16; // soft atmospheric bokeh motes
+      const hasStarGlint = !isBokeh && Math.random() < 0.18; // sparkling cross-diffraction glint
+
       const colorScheme = palette[Math.floor(Math.random() * palette.length)];
-      // Refined radii: fine golden dust (0.8 - 1.6px) and soft glowing bokeh (2.4 - 4.2px)
-      const radius = isLargeBokeh
-        ? Math.random() * 1.8 + 2.4
-        : Math.random() * 0.8 + 0.8;
+
+      let radius: number;
+      if (isBokeh) {
+        radius = Math.random() * 2.2 + 2.6; // 2.6px - 4.8px soft orb
+      } else if (hasStarGlint) {
+        radius = Math.random() * 0.9 + 1.2; // 1.2px - 2.1px glittering star
+      } else {
+        radius = Math.random() * 0.9 + 0.5; // 0.5px - 1.4px fine stardust speck
+      }
+
+      // Position logic: cosmic stream particles are clustered in the right/upper-right nebula
+      let initialX: number;
+      let initialY: number;
+      let baseVx: number;
+      let baseVy: number;
+
+      if (isCosmicStream) {
+        // Biased heavily toward right quadrant (0.52W to 1.05W, 0.05H to 0.75H)
+        initialX = width * (0.50 + Math.random() * 0.52);
+        initialY = height * (Math.random() * 0.78);
+        // Gentle diagonal drift into the scene from the nebula
+        baseVx = -(Math.random() * 0.28 + 0.08);
+        baseVy = Math.random() * 0.18 - 0.04;
+      } else {
+        // Uniform distribution for ambient room atmosphere
+        initialX = Math.random() * width;
+        initialY = Math.random() * height;
+        // Subtle upward organic float
+        baseVx = (Math.random() - 0.5) * 0.20;
+        baseVy = -(Math.random() * 0.24 + 0.06);
+      }
 
       particles.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        baseVx: (Math.random() - 0.5) * 0.25,
-        baseVy: -Math.random() * 0.32 - 0.1, // gentle atmospheric upward drift
+        x: initialX,
+        y: initialY,
+        baseVx,
+        baseVy,
         vx: 0,
         vy: 0,
         radius,
         baseRadius: radius,
         color: colorScheme.base,
         glowColor: colorScheme.glow,
-        alpha: Math.random() * 0.4 + 0.15,
-        targetAlpha: Math.random() * 0.5 + 0.22,
-        pulseSpeed: Math.random() * 0.014 + 0.005,
-        isHexBokeh: isLargeBokeh && Math.random() > 0.5,
-        mass: radius * 1.6,
+        alpha: Math.random() * 0.45 + 0.20,
+        targetAlpha: Math.random() * 0.65 + 0.25,
+        pulseSpeed: Math.random() * 0.016 + 0.006,
+        isBokeh,
+        hasStarGlint,
+        twinklePhase: Math.random() * Math.PI * 2,
+        twinkleSpeed: Math.random() * 0.04 + 0.015,
+        isCosmicStream,
+        mass: radius * 1.5,
       });
     }
 
-    // Dynamic spark particles generated by mouse interactions (minimal and subtle)
+    // Dynamic sparks generated by mouse interactions
     const sparks: InteractiveSpark[] = [];
 
     const addSpark = (x: number, y: number, count = 1) => {
       for (let i = 0; i < count; i++) {
-        if (sparks.length > 30) sparks.shift();
+        if (sparks.length > 45) sparks.shift();
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 1.4 + 0.3;
-        const color = Math.random() > 0.4 ? 'rgba(74, 222, 128, ' : 'rgba(34, 197, 94, ';
+        const speed = Math.random() * 1.8 + 0.4;
+        const isWhiteGlint = Math.random() > 0.25;
+        const color = isWhiteGlint ? 'rgba(255, 255, 255, ' : 'rgba(167, 243, 208, ';
         sparks.push({
-          x: x + (Math.random() - 0.5) * 10,
-          y: y + (Math.random() - 0.5) * 10,
+          x: x + (Math.random() - 0.5) * 12,
+          y: y + (Math.random() - 0.5) * 12,
           vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed - 0.2,
-          radius: Math.random() * 0.8 + 0.5, // much smaller sparks
-          alpha: 0.75,
-          decay: Math.random() * 0.03 + 0.02,
+          vy: Math.sin(angle) * speed - 0.25,
+          radius: Math.random() * 0.9 + 0.6,
+          alpha: 0.85,
+          decay: Math.random() * 0.035 + 0.02,
           color,
         });
       }
     };
 
-    // Event listeners for mouse and touch
+    // Event listeners
     const onMouseMove = (e: MouseEvent) => {
       mouse.active = true;
       mouse.targetX = e.clientX;
@@ -145,8 +190,8 @@ export function ParticleField() {
       mouse.prevX = mouse.targetX;
       mouse.prevY = mouse.targetY;
 
-      // Spawn subtle golden sparks when the cursor glides across the hero
-      if (mouse.speed > 8 && Math.random() < 0.35) {
+      // Spawn shimmering stardust trail when cursor glides across the hero
+      if (mouse.speed > 7 && Math.random() < 0.45) {
         addSpark(mouse.targetX, mouse.targetY, 1);
       }
     };
@@ -158,7 +203,7 @@ export function ParticleField() {
     };
 
     const onClick = (e: MouseEvent) => {
-      addSpark(e.clientX, e.clientY, 3);
+      addSpark(e.clientX, e.clientY, 5);
     };
 
     const onTouchMove = (e: TouchEvent) => {
@@ -167,7 +212,7 @@ export function ParticleField() {
         mouse.targetX = e.touches[0].clientX;
         mouse.targetY = e.touches[0].clientY;
         if (Math.random() < 0.4) {
-          addSpark(mouse.targetX, mouse.targetY, 1);
+          addSpark(mouse.targetX, mouse.targetY, 2);
         }
       }
     };
@@ -184,25 +229,39 @@ export function ParticleField() {
     window.addEventListener('touchmove', onTouchMove, { passive: true });
     window.addEventListener('touchend', onTouchEnd, { passive: true });
 
-    // Helper: Draw decorative hexagonal bokeh aperture
-    const drawHexagon = (c: CanvasRenderingContext2D, x: number, y: number, r: number) => {
+    // Helper: Draw subtle 4-point star flare on sparkling stardust
+    const drawStarGlint = (c: CanvasRenderingContext2D, x: number, y: number, r: number, alpha: number) => {
+      const glintLength = r * 3.6;
+      c.save();
+      c.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.85})`;
+      c.lineWidth = 0.75;
+
       c.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const angle = (Math.PI / 3) * i;
-        const hx = x + r * Math.cos(angle);
-        const hy = y + r * Math.sin(angle);
-        if (i === 0) c.moveTo(hx, hy);
-        else c.lineTo(hx, hy);
-      }
-      c.closePath();
+      // Horizontal flare
+      c.moveTo(x - glintLength, y);
+      c.lineTo(x + glintLength, y);
+      // Vertical flare
+      c.moveTo(x, y - glintLength);
+      c.lineTo(x, y + glintLength);
+      c.stroke();
+
+      // Soft center core
+      c.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+      c.beginPath();
+      c.arc(x, y, r * 0.7, 0, Math.PI * 2);
       c.fill();
+      c.restore();
     };
+
+    // Animation frame timing
+    let time = 0;
 
     // Main animation loop
     const render = () => {
       ctx.clearRect(0, 0, width, height);
+      time += 0.018;
 
-      // Smooth mouse coordinate tracking
+      // Smooth cursor interpolation
       if (mouse.targetX > -500) {
         mouse.x += (mouse.targetX - mouse.x) * 0.12;
         mouse.y += (mouse.targetY - mouse.y) * 0.12;
@@ -211,7 +270,31 @@ export function ParticleField() {
         mouse.y = -1000;
       }
 
-      // 1. Ambient Radial Cursor Halo
+      // 1. Ambient Nebula Glow on the right side of the canvas
+      // Softer, subtle ambient glow located lower down away from the header
+      const nebulaX = width * 0.88 + (mouse.x > 0 ? (mouse.x - width * 0.5) * 0.03 : 0);
+      const nebulaY = height * 0.44 + (mouse.y > 0 ? (mouse.y - height * 0.5) * 0.03 : 0);
+      const nebulaRadius = Math.max(width * 0.36, 300);
+
+      const nebulaGrad = ctx.createRadialGradient(
+        nebulaX,
+        nebulaY,
+        0,
+        nebulaX,
+        nebulaY,
+        nebulaRadius
+      );
+      nebulaGrad.addColorStop(0, 'rgba(16, 185, 129, 0.025)');
+      nebulaGrad.addColorStop(0.40, 'rgba(5, 150, 105, 0.012)');
+      nebulaGrad.addColorStop(0.75, 'rgba(4, 47, 46, 0.004)');
+      nebulaGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+      ctx.fillStyle = nebulaGrad;
+      ctx.beginPath();
+      ctx.arc(nebulaX, nebulaY, nebulaRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 2. Interactive Cursor Halo (clean, neutral, and subtle)
       if (mouse.active && mouse.x > 0 && mouse.y > 0) {
         const haloGrad = ctx.createRadialGradient(
           mouse.x,
@@ -219,22 +302,22 @@ export function ParticleField() {
           0,
           mouse.x,
           mouse.y,
-          mouse.radius * 1.3
+          mouse.radius * 1.2
         );
-        haloGrad.addColorStop(0, 'rgba(34, 197, 94, 0.05)');
-        haloGrad.addColorStop(0.5, 'rgba(34, 197, 94, 0.02)');
+        haloGrad.addColorStop(0, 'rgba(255, 255, 255, 0.04)');
+        haloGrad.addColorStop(0.4, 'rgba(167, 243, 208, 0.015)');
         haloGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
         ctx.fillStyle = haloGrad;
         ctx.beginPath();
-        ctx.arc(mouse.x, mouse.y, mouse.radius * 1.3, 0, Math.PI * 2);
+        ctx.arc(mouse.x, mouse.y, mouse.radius * 1.2, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      // 2. Process and Render Main Atmospheric Particles
+      // 3. Process and Render Main Atmospheric Particles
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
 
-        // Interaction with mouse: repulsion + aerodynamic swirl
+        // Interaction with mouse: aerodynamic repulsion + gentle rotational vortex
         if (mouse.x > -500 && mouse.y > -500) {
           const dx = p.x - mouse.x;
           const dy = p.y - mouse.y;
@@ -243,84 +326,127 @@ export function ParticleField() {
 
           if (distSq < maxDist * maxDist && distSq > 4) {
             const dist = Math.sqrt(distSq);
-            const force = (1 - dist / maxDist) * 1.5; // gentle, subtle nudge
+            const force = (1 - dist / maxDist) * 1.8;
             const nx = dx / dist;
             const ny = dy / dist;
 
             // Push outward gently
-            p.vx += (nx * force * 1.1) / p.mass;
-            p.vy += (ny * force * 1.1) / p.mass;
+            p.vx += (nx * force * 1.2) / p.mass;
+            p.vy += (ny * force * 1.2) / p.mass;
 
-            // Subtle rotational swirl around cursor
-            p.vx += (-ny * force * 0.4) / p.mass;
-            p.vy += (nx * force * 0.4) / p.mass;
+            // Swirl turbulence around cursor
+            p.vx += (-ny * force * 0.45) / p.mass;
+            p.vy += (nx * force * 0.45) / p.mass;
 
-            // Temporary luminous activation
-            p.targetAlpha = Math.min(1, p.targetAlpha + 0.03);
+            // Luminous activation on interaction
+            p.targetAlpha = Math.min(1, p.targetAlpha + 0.05);
           }
         }
 
-        // Apply friction/damping to interactive velocity to return to natural drift
-        p.vx *= 0.94;
-        p.vy *= 0.94;
+        // Apply friction/damping to return to natural drift
+        p.vx *= 0.93;
+        p.vy *= 0.93;
 
-        // Update position: drift velocity + interactive displacement
+        // Position update
         p.x += p.baseVx + p.vx;
         p.y += p.baseVy + p.vy;
 
-        // Wrap around boundaries smoothly
+        // Wrap around boundaries gracefully with cosmic respawn logic
+        if (p.x < -30) {
+          p.x = width + 20;
+          p.y = p.isCosmicStream ? Math.random() * height * 0.8 : Math.random() * height;
+          p.vx = 0;
+          p.vy = 0;
+        } else if (p.x > width + 30) {
+          p.x = -20;
+          p.vx = 0;
+          p.vy = 0;
+        }
+
         if (p.y < -30) {
-          p.y = height + 30;
-          p.x = Math.random() * width;
+          p.y = height + 20;
+          p.x = p.isCosmicStream ? width * (0.55 + Math.random() * 0.45) : Math.random() * width;
           p.vx = 0;
           p.vy = 0;
         } else if (p.y > height + 30) {
-          p.y = -30;
-          p.x = Math.random() * width;
+          p.y = -20;
+          p.x = p.isCosmicStream ? width * (0.55 + Math.random() * 0.45) : Math.random() * width;
+          p.vx = 0;
+          p.vy = 0;
         }
 
-        if (p.x < -30) p.x = width + 30;
-        if (p.x > width + 30) p.x = -30;
+        // Twinkle sinusoidal brightness modulation
+        p.twinklePhase += p.twinkleSpeed;
+        const twinkleMod = (Math.sin(p.twinklePhase) + 1) * 0.5; // 0 to 1
 
-        // Breathing alpha oscillation
+        // Base breathing alpha
         p.alpha += (p.targetAlpha - p.alpha) * p.pulseSpeed;
         if (Math.abs(p.targetAlpha - p.alpha) < 0.04) {
-          p.targetAlpha = Math.random() * 0.5 + 0.15;
+          p.targetAlpha = Math.random() * 0.55 + 0.20;
         }
 
-        ctx.fillStyle = `${p.color}${p.alpha})`;
+        // Soften and fade particles gracefully if they drift near the top header (y < 130px)
+        let headerFade = 1;
+        if (p.y < 140) {
+          headerFade = Math.max(0, (p.y - 35) / 105);
+        }
 
-        // Render Bokeh Hexagon or Soft Glow Point
-        if (p.isHexBokeh) {
-          drawHexagon(ctx, p.x, p.y, p.radius * 1.4);
+        const currentAlpha = Math.min(1, Math.max(0.02, p.alpha * (0.65 + twinkleMod * 0.45) * headerFade));
+
+        // If completely faded near header, skip drawing
+        if (currentAlpha < 0.03) continue;
+
+        // Render Bokeh Orb, Star Glint, or Fine Stardust Dot
+        if (p.isBokeh) {
+          // Soft atmospheric bokeh with radial falloff
+          const bokehGrad = ctx.createRadialGradient(
+            p.x,
+            p.y,
+            0,
+            p.x,
+            p.y,
+            p.radius * 2.2
+          );
+          bokehGrad.addColorStop(0, `${p.color}${currentAlpha * 0.85})`);
+          bokehGrad.addColorStop(0.45, `${p.color}${currentAlpha * 0.35})`);
+          bokehGrad.addColorStop(1, 'rgba(0,0,0,0)');
+
+          ctx.fillStyle = bokehGrad;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius * 2.2, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (p.hasStarGlint && twinkleMod > 0.72) {
+          // High-luminance star glint with diffraction flare
+          drawStarGlint(ctx, p.x, p.y, p.radius, currentAlpha);
         } else {
+          // Clean pinpoint stardust speck
+          ctx.fillStyle = `${p.color}${currentAlpha})`;
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
           ctx.fill();
 
           // Subtle glow aura on larger motes
-          if (p.radius > 2) {
+          if (p.radius > 1.4) {
             ctx.fillStyle = p.glowColor;
             ctx.beginPath();
-            ctx.arc(p.x, p.y, p.radius * 1.8, 0, Math.PI * 2);
+            ctx.arc(p.x, p.y, p.radius * 2.0, 0, Math.PI * 2);
             ctx.fill();
           }
         }
 
-        // 3. Connective genetic affinity lines between nearby particles close to mouse
+        // 4. Connective celestial affinity lines between neighboring cosmic particles near cursor
         if (mouse.x > -500 && mouse.y > -500) {
-          for (let j = i + 1; j < particles.length; j++) {
+          for (let j = i + 1; j < Math.min(i + 8, particles.length); j++) {
             const p2 = particles[j];
             const pDistSq = (p.x - p2.x) ** 2 + (p.y - p2.y) ** 2;
-            if (pDistSq < 6000) {
-              // Only draw if both are within mouse influence proximity
+            if (pDistSq < 6500) {
               const mouseDistToMidpoint = Math.hypot(
                 (p.x + p2.x) / 2 - mouse.x,
                 (p.y + p2.y) / 2 - mouse.y
               );
-              if (mouseDistToMidpoint < mouse.radius * 1.1) {
-                const lineAlpha = (1 - pDistSq / 6000) * 0.15 * (1 - mouseDistToMidpoint / (mouse.radius * 1.1));
-                ctx.strokeStyle = `rgba(74, 222, 128, ${lineAlpha})`;
+              if (mouseDistToMidpoint < mouse.radius * 0.95) {
+                const lineAlpha = (1 - pDistSq / 6500) * 0.12 * (1 - mouseDistToMidpoint / (mouse.radius * 0.95));
+                ctx.strokeStyle = `rgba(220, 252, 240, ${lineAlpha})`;
                 ctx.lineWidth = 0.75;
                 ctx.beginPath();
                 ctx.moveTo(p.x, p.y);
@@ -332,7 +458,7 @@ export function ParticleField() {
         }
       }
 
-      // 4. Render Dynamic Interactive Sparks
+      // 5. Render Dynamic Interactive Sparks (Stardust trails)
       for (let i = sparks.length - 1; i >= 0; i--) {
         const s = sparks[i];
         s.x += s.vx;
@@ -348,6 +474,14 @@ export function ParticleField() {
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.radius * s.alpha, 0, Math.PI * 2);
         ctx.fill();
+
+        // Extra diamond glint on fast sparks
+        if (s.radius > 0.8 && s.alpha > 0.4) {
+          ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha * 0.6})`;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.radius * 0.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
 
       animationFrameId = requestAnimationFrame(render);

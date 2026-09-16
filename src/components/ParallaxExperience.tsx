@@ -978,7 +978,7 @@ export function ParallaxExperience() {
             }}
             className="absolute inset-0 w-full h-full pointer-events-none"
           >
-            {/* Deep Background Layer with Corn Ear */}
+            {/* Deep Background Layer with Calisthenics Anatomical Sculpture */}
             <motion.div
               id="hero-bg-layer"
               style={{
@@ -990,36 +990,60 @@ export function ParallaxExperience() {
               className="absolute -inset-[6%] z-0 pointer-events-none"
             >
               <img
-                src="/hero-corn.png"
-                alt="Revolutionary Pioneer Corn Ear"
+                src="/hero.png"
+                alt="Talos Calisthenics Anatomical Sculpture"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (!target.src.endsWith('/hero-corn.png')) {
+                    target.src = '/hero-corn.png';
+                  }
+                }}
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover object-center"
               />
 
-              {/* Dynamic Lighting Sheen */}
+              {/* Dynamic Studio Rim Lighting (Clean, neutral high-end studio sheen) */}
               <motion.div
                 style={{
                   background: useTransform(
                     [lightX, lightY],
                     ([lx, ly]) =>
-                      `radial-gradient(circle at ${lx} ${ly}, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.04) 35%, transparent 70%)`
+                      `radial-gradient(circle at ${lx} ${ly}, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.03) 35%, transparent 70%)`
                   ),
                 }}
                 className="absolute inset-0 pointer-events-none"
                 aria-hidden="true"
               />
 
-              {/* Vignette & Atmospheric Gradients */}
+              {/* Luminous Volumetric Cosmic Nebula Haze on the right (Soft, subtle ambient haze) */}
               <div
-                className="absolute inset-0 bg-radial-[circle_at_50%_45%] from-transparent via-[#0a0a0a]/40 to-[#050505]/90 pointer-events-none"
+                className="absolute inset-0 bg-[radial-gradient(ellipse_at_88%_44%,_rgba(16,185,129,0.07)_0%,_rgba(6,78,59,0.03)_36%,_transparent_70%)] pointer-events-none mix-blend-screen"
+                aria-hidden="true"
+              />
+
+              {/* Studio Floor Specular Reflection Sheen at bottom */}
+              <div
+                className="absolute bottom-0 inset-x-0 h-48 bg-[radial-gradient(ellipse_at_76%_90%,_rgba(52,211,153,0.06)_0%,_rgba(6,78,59,0.02)_45%,_transparent_75%)] pointer-events-none mix-blend-screen"
+                aria-hidden="true"
+              />
+
+              {/* Pure Obsidian Header Shading Mask to keep the header bar clean, dark, and clear of green tint */}
+              <div
+                className="absolute top-0 inset-x-0 h-40 bg-gradient-to-b from-[#030303]/90 via-[#030303]/45 to-transparent pointer-events-none"
+                aria-hidden="true"
+              />
+
+              {/* Vignette & Cinematic Studio Framing */}
+              <div
+                className="absolute inset-0 bg-radial-[circle_at_50%_45%] from-transparent via-[#050505]/20 to-[#020202]/85 pointer-events-none"
                 aria-hidden="true"
               />
               <div
-                className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/60 pointer-events-none"
+                className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505]/70 pointer-events-none"
                 aria-hidden="true"
               />
               <div
-                className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-black/50 pointer-events-none"
+                className="absolute inset-0 bg-gradient-to-r from-[#050505]/60 via-transparent to-[#050505]/30 pointer-events-none"
                 aria-hidden="true"
               />
             </motion.div>
@@ -1452,13 +1476,13 @@ export function ParallaxExperience() {
             <button
               id="get-early-access-btn"
               onClick={scrollToSection4}
-              className="relative group inline-flex items-center justify-center px-4 py-3 sm:px-[18px] sm:py-3.5 rounded-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+              className="relative group inline-flex items-center justify-center px-4 py-3 sm:px-[18px] sm:py-3.5 rounded-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/30"
               aria-label="Get early access"
             >
-              {/* Ambient emerald glow bloom behind the button */}
+              {/* Refined subtle ambient starlight glow bloom behind the button */}
               <span
                 className="absolute -inset-2.5 rounded-full pointer-events-none opacity-0 group-hover:opacity-100 blur-md transition-opacity duration-500"
-                style={{ background: 'radial-gradient(circle, rgba(34,197,94,0.35) 0%, transparent 70%)' }}
+                style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.14) 0%, rgba(52,211,153,0.08) 40%, transparent 70%)' }}
                 aria-hidden="true"
               />
 

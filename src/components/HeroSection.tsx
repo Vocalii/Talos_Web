@@ -175,36 +175,60 @@ export function HeroSection({ onExploreNext }: HeroSectionProps = {}) {
           className="absolute -inset-[4%] z-0 scale-[1.06] pointer-events-none transition-[filter] duration-200"
         >
           <img
-            src="/Users/jontetaffe/Landing/src/assets/images/hero.png"
-            alt="Revolutionary Pioneer Corn Ear"
+            src="/hero.png"
+            alt="Talos Calisthenics Anatomical Sculpture"
+            onError={(e) => {
+              const target = e.currentTarget;
+              if (!target.src.endsWith('/hero-corn.png')) {
+                target.src = '/hero-corn.png';
+              }
+            }}
             referrerPolicy="no-referrer"
             className="w-full h-full object-cover object-center"
           />
 
-          {/* Cinematic Dynamic Lighting Sheen shifting with cursor */}
+          {/* Cinematic Dynamic Studio Key Lighting (Clean, neutral high-end studio sheen) */}
           <motion.div
             style={{
               background: useTransform(
                 [lightX, lightY],
                 ([lx, ly]) =>
-                  `radial-gradient(circle at ${lx} ${ly}, rgba(52, 211, 153, 0.08) 0%, rgba(245, 158, 11, 0.035) 35%, transparent 70%)`
+                  `radial-gradient(circle at ${lx} ${ly}, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.03) 35%, transparent 70%)`
               ),
             }}
             className="absolute inset-0 pointer-events-none"
             aria-hidden="true"
           />
 
+          {/* Volumetric Cosmic Nebula Haze on the right (Soft, subtle ambient haze) */}
+          <div
+            className="absolute inset-0 bg-[radial-gradient(ellipse_at_88%_44%,_rgba(16,185,129,0.07)_0%,_rgba(6,78,59,0.03)_36%,_transparent_70%)] pointer-events-none mix-blend-screen"
+            aria-hidden="true"
+          />
+
+          {/* Studio Floor Specular Wet Reflection Sheen at bottom */}
+          <div
+            className="absolute bottom-0 inset-x-0 h-48 bg-[radial-gradient(ellipse_at_76%_90%,_rgba(52,211,153,0.06)_0%,_rgba(6,78,59,0.02)_45%,_transparent_75%)] pointer-events-none mix-blend-screen"
+            aria-hidden="true"
+          />
+
+          {/* Pure Obsidian Header Shading Mask to keep the header bar clean, dark, and clear of green tint */}
+          <div
+            className="absolute top-0 inset-x-0 h-40 bg-gradient-to-b from-[#030303]/90 via-[#030303]/45 to-transparent pointer-events-none"
+            aria-hidden="true"
+          />
+
           {/* Vignette & Atmospheric Gradients */}
           <div
-            className="absolute inset-0 bg-radial-[circle_at_50%_45%] from-transparent via-[#03150d]/40 to-[#010a05]/90 pointer-events-none"
+            className="absolute inset-0 bg-radial-[circle_at_50%_45%] from-transparent via-[#050505]/20 to-[#020202]/85 pointer-events-none"
             aria-hidden="true"
           />
           <div
-            className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/60 pointer-events-none"
+            className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505]/70 pointer-events-none"
             aria-hidden="true"
           />
           <div
-            className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-black/50 pointer-events-none"
+            className="absolute inset-0 bg-gradient-to-r from-[#050505]/60 via-transparent to-[#050505]/30 pointer-events-none"
             aria-hidden="true"
           />
         </motion.div>
@@ -238,9 +262,9 @@ export function HeroSection({ onExploreNext }: HeroSectionProps = {}) {
             className="group flex flex-col justify-center items-start gap-1.5 w-8 h-8 focus:outline-none cursor-pointer"
             aria-label="Open navigation menu"
           >
-            <span className="w-7 h-[2px] bg-white transition-all duration-300 group-hover:w-8 group-hover:bg-emerald-400" />
-            <span className="w-7 h-[2px] bg-white transition-all duration-300 group-hover:w-8 group-hover:bg-emerald-400" />
-            <span className="w-7 h-[2px] bg-white transition-all duration-300 group-hover:w-8 group-hover:bg-emerald-400" />
+            <span className="w-7 h-[2px] bg-white transition-all duration-300 group-hover:w-8 group-hover:bg-white/90" />
+            <span className="w-7 h-[2px] bg-white transition-all duration-300 group-hover:w-8 group-hover:bg-white/90" />
+            <span className="w-7 h-[2px] bg-white transition-all duration-300 group-hover:w-8 group-hover:bg-white/90" />
           </button>
 
           {/* Pioneer Brand Logo */}
