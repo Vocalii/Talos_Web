@@ -1597,10 +1597,15 @@ export function ParallaxExperience() {
                 aria-label={`Jump to ${section.label}`}
                 aria-current={isActive ? 'true' : 'false'}
               >
-                {/* Floating Tooltip Pill on Hover */}
-                <div className="absolute right-10 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-md bg-[#0a0a0a]/92 backdrop-blur-md border border-white/30 text-[11px] font-medium tracking-wider text-white uppercase whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 transform translate-x-2 group-hover:translate-x-0 shadow-[0_4px_20px_rgba(0,0,0,0.8)] flex items-center gap-2">
-                  <span className="font-mono text-white text-[10px]">{section.number}</span>
-                  <span>{section.label}</span>
+                {/* Sleek Minimal Hover Text without box container */}
+                <div className="absolute right-10 top-1/2 -translate-y-1/2 flex items-center gap-2.5 text-right whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 ease-out transform translate-x-2 group-hover:translate-x-0 drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)]">
+                  <span className="font-mono text-[9px] tracking-[0.25em] text-white/40 font-medium">
+                    {section.number}
+                  </span>
+                  <span className="w-2.5 h-px bg-white/20" aria-hidden="true" />
+                  <span className="font-display font-light text-[10px] sm:text-[11px] tracking-[0.22em] uppercase text-white/90 group-hover:text-white transition-colors duration-200">
+                    {section.label}
+                  </span>
                 </div>
 
                 {/* Active Animated Orbital Ring vs Inactive Clean Dot —

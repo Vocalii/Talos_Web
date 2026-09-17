@@ -3,6 +3,7 @@ import { motion, AnimatePresence, MotionValue, useMotionValue, useSpring, useTra
 import { X, Sparkles, ShieldCheck } from 'lucide-react';
 import { LiquidPullText } from './LiquidPullText';
 import { ExploreLibraryButton } from './ExploreLibraryButton';
+import { FloatingPhoneVideo } from './FloatingPhoneVideo';
 
 interface ProductData {
   id: number;
@@ -165,7 +166,6 @@ export function PlaceholderSection({
 }: PlaceholderSectionProps) {
   // Active product state (QROME® PRODUCTS)
   const selectedProductIndex = 2;
-  const [isHotspotOpen, setIsHotspotOpen] = useState(false);
   const setIsFeaturesExploreActive = (active: boolean) => onFeaturesExploreActiveChange?.(active);
 
   // Lock vertical scrolling while the features panel is active, without
@@ -324,33 +324,7 @@ export function PlaceholderSection({
   const orbitTiltX = useTransform(smoothY, [-1, 1], [-8, 8]);
   const orbitTiltY = useTransform(smoothX, [-1, 1], [10, -10]);
 
-  // 3D Kernel Drag / Spin Physics
-  const [kernelDragRotationY, setKernelDragRotationY] = useState(0);
-  const [kernelDragRotationX, setKernelDragRotationX] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const startRotRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-
   const currentProduct = PRODUCTS[selectedProductIndex];
-
-  // Drag handlers for 3D kernel rotation
-  const handlePointerDown = (clientX: number, clientY: number) => {
-    setIsDragging(true);
-    dragStartRef.current = { x: clientX, y: clientY };
-    startRotRef.current = { x: kernelDragRotationX, y: kernelDragRotationY };
-  };
-
-  const handlePointerMove = (clientX: number, clientY: number) => {
-    if (!isDragging) return;
-    const deltaX = clientX - dragStartRef.current.x;
-    const deltaY = clientY - dragStartRef.current.y;
-    setKernelDragRotationY(startRotRef.current.y + deltaX * 0.7);
-    setKernelDragRotationX(Math.max(-30, Math.min(30, startRotRef.current.x - deltaY * 0.4)));
-  };
-
-  const handlePointerUp = () => {
-    setIsDragging(false);
-  };
 
   const handleContainerMouseMove = (e: MouseEvent<HTMLDivElement>) => {
     if (!externalMouseX) {
@@ -359,10 +333,6 @@ export function PlaceholderSection({
       const normalizedY = ((e.clientY - rect.top) / rect.height) * 2 - 1;
       internalMouseX.set(normalizedX);
       internalMouseY.set(normalizedY);
-    }
-
-    if (isDragging) {
-      handlePointerMove(e.clientX, e.clientY);
     }
   };
 
@@ -495,13 +465,6 @@ export function PlaceholderSection({
     <div
       id="placeholder-section-container"
       onMouseMove={handleContainerMouseMove}
-      onMouseUp={handlePointerUp}
-      onTouchMove={(e) => {
-        if (isDragging && e.touches[0]) {
-          handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
-        }
-      }}
-      onTouchEnd={handlePointerUp}
       className="relative w-full h-full min-h-screen overflow-hidden select-none flex items-center justify-center [perspective:1400px]"
     >
       {/* The shared atmospheric background is rendered once, persistently,
@@ -722,286 +685,20 @@ export function PlaceholderSection({
             </AnimatePresence>
           </motion.div>
 
-          {/* CENTER / RIGHT COLUMN: 3D INTERACTIVE KERNEL & ORBIT RADAR */}
+          {/* CENTER / RIGHT COLUMN: PHONE VIDEO DEMO */}
           <motion.div
             style={{
               y: combinedProductStageY,
               opacity: combinedProductStageOpacity,
             }}
-            className="w-full lg:w-[52%] xl:w-[54%] relative flex flex-col items-center justify-center min-h-[360px] sm:min-h-[440px] lg:min-h-[480px] z-20 [transform-style:preserve-3d]"
+            className="w-full lg:w-[52%] xl:w-[54%] relative flex flex-col items-center justify-center min-h-[400px] sm:min-h-[460px] lg:min-h-[500px] z-20"
           >
-            {/* Top Micro Label: DRAG KERNEL TO DISCOVER */}
-            <motion.div
-              style={{
-                x: textDisplaceX,
-                y: combinedPromptY,
-                opacity: combinedPromptOpacity,
-              }}
-              className="text-center mb-2 z-30 select-none pointer-events-none [transform:translateZ(25px)] will-change-transform"
-            >
-              <span className="text-[11px] sm:text-[12px] font-bold uppercase tracking-[0.28em] text-white/90 drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
-                DRAG KERNEL TO DISCOVER
-              </span>
-            </motion.div>
-
-            {/* Floating Interactive 3D Kernel Stage */}
-            <div
-              className="relative w-full max-w-[420px] sm:max-w-[480px] aspect-[1/1] flex items-center justify-center cursor-grab active:cursor-grabbing pointer-events-auto [transform-style:preserve-3d]"
-              onMouseDown={(e) => handlePointerDown(e.clientX, e.clientY)}
-              onTouchStart={(e) => {
-                if (e.touches[0]) handlePointerDown(e.touches[0].clientX, e.touches[0].clientY);
-              }}
-            >
-              {/* Backlight Ambient Glow with 3D depth and radiant expansion */}
-              <motion.div
-                style={{
-                  scale: combinedGlowScale,
-                  opacity: combinedGlowOpacity,
-                  background:
-                    'radial-gradient(ellipse 60% 65% at 55% 45%, rgba(245, 158, 11, 0.32) 0%, rgba(16, 185, 129, 0.16) 40%, transparent 70%)',
-                }}
-                className="absolute inset-0 rounded-full pointer-events-none [transform:translateZ(-10px)] origin-center will-change-transform"
-              />
-
-              {/* Elliptical Dashed Orbit Ring with Tracking Nodes and 3D dynamic tilt */}
-              <motion.div
-                style={{
-                  rotateX: orbitTiltX,
-                  rotateY: orbitTiltY,
-                  scale: combinedOrbitScale,
-                  opacity: combinedOrbitOpacity,
-                  rotateZ: combinedOrbitRotateZ,
-                }}
-                className="absolute inset-0 w-full h-full pointer-events-none z-10 [transform:translateZ(15px)] [transform-style:preserve-3d] origin-center will-change-transform"
-              >
-                <svg
-                  viewBox="0 0 500 500"
-                  className="w-full h-full pointer-events-none overflow-visible"
-                >
-                  {/* 3D Tilted Dashed Orbit Ring */}
-                  <ellipse
-                    cx="250"
-                    cy="255"
-                    rx="185"
-                    ry="48"
-                    fill="none"
-                    stroke="rgba(255, 255, 255, 0.60)"
-                    strokeWidth="1.3"
-                    strokeDasharray="3 7"
-                    className="drop-shadow-[0_0_8px_rgba(255,255,255,0.45)]"
-                    style={{
-                      transform: `rotate(${kernelDragRotationX * 0.15 - 5}deg)`,
-                      transformOrigin: '250px 255px',
-                    }}
-                  />
-
-                  {/* Left Orbit Node Point */}
-                  <circle
-                    cx="72"
-                    cy="253"
-                    r="3.5"
-                    fill="#ffffff"
-                    className="drop-shadow-[0_0_10px_rgba(255,255,255,0.95)]"
-                  />
-
-                  {/* Right Orbit Node Point */}
-                  <circle
-                    cx="428"
-                    cy="257"
-                    r="3.5"
-                    fill="#ffffff"
-                    className="drop-shadow-[0_0_10px_rgba(255,255,255,0.95)]"
-                  />
-                </svg>
-              </motion.div>
-
-              {/* 3D ROTATABLE KERNEL MESH CONTAINER WITH INTEGRATED TILT & DRAG */}
-              <motion.div
-                style={{
-                  rotateY: useTransform(combinedKernelRotateY, (val) => val + kernelDragRotationY),
-                  rotateX: useTransform(combinedKernelRotateX, (val) => val + kernelDragRotationX),
-                  y: combinedKernelY,
-                  scale: combinedKernelScale,
-                  opacity: combinedKernelOpacity,
-                  transformStyle: 'preserve-3d',
-                }}
-                className="relative w-[210px] sm:w-[260px] md:w-[290px] h-[280px] sm:h-[350px] md:h-[390px] flex items-center justify-center select-none [transform:translateZ(40px)] origin-center will-change-transform"
-              >
-                {/* Photorealistic SVG Kernel Silhouette & Lighting */}
-                <svg
-                  viewBox="0 0 400 520"
-                  className="w-full h-full drop-shadow-[0_30px_60px_rgba(0,0,0,0.95)]"
-                >
-                  <defs>
-                    {/* Realistic Golden Corn Kernel Gradient */}
-                    <radialGradient id="kernelBaseGradTilt" cx="62%" cy="40%" r="65%">
-                      <stop offset="0%" stopColor="#ffef99" />
-                      <stop offset="20%" stopColor="#e8bf48" />
-                      <stop offset="50%" stopColor="#ab8c29" />
-                      <stop offset="78%" stopColor="#67581b" />
-                      <stop offset="100%" stopColor="#252410" />
-                    </radialGradient>
-
-                    {/* Warm Right/Top Highlight Glaze */}
-                    <linearGradient id="kernelSunHighlightTilt" x1="20%" y1="0%" x2="100%" y2="80%">
-                      <stop offset="0%" stopColor="#fff8db" stopOpacity="0.85" />
-                      <stop offset="35%" stopColor="#f7d057" stopOpacity="0.65" />
-                      <stop offset="70%" stopColor="#c29623" stopOpacity="0.2" />
-                      <stop offset="100%" stopColor="#1a1806" stopOpacity="0.9" />
-                    </linearGradient>
-
-                    {/* Tip Cap Shading Gradient (Botanical base) */}
-                    <linearGradient id="kernelTipCapGradTilt" x1="50%" y1="0%" x2="50%" y2="100%">
-                      <stop offset="0%" stopColor="#55513c" />
-                      <stop offset="45%" stopColor="#2e312b" />
-                      <stop offset="85%" stopColor="#1c201a" />
-                      <stop offset="100%" stopColor="#0d100d" />
-                    </linearGradient>
-
-                    {/* Specular Rim Light */}
-                    <linearGradient id="kernelRightRimTilt" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="70%" stopColor="transparent" />
-                      <stop offset="88%" stopColor="#fde68a" stopOpacity="0.6" />
-                      <stop offset="98%" stopColor="#ffffff" stopOpacity="0.9" />
-                      <stop offset="100%" stopColor="#ffffff" />
-                    </linearGradient>
-
-                    {/* Soft Shadow Filter */}
-                    <filter id="kernelGlowTilt" x="-20%" y="-20%" width="140%" height="140%">
-                      <feGaussianBlur stdDeviation="6" result="blur" />
-                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                    </filter>
-                  </defs>
-
-                  {/* Kernel Back Glow Silhouette */}
-                  <path
-                    d="M 200 95 C 275 92 315 135 310 215 C 305 295 270 375 235 410 C 215 430 190 440 178 418 C 145 380 95 300 90 220 C 85 140 125 98 200 95 Z"
-                    fill="none"
-                    stroke="rgba(245, 158, 11, 0.45)"
-                    strokeWidth="10"
-                    filter="url(#kernelGlowTilt)"
-                  />
-
-                  {/* Main Authentic Corn Kernel Body */}
-                  <path
-                    d="M 200 95 C 275 92 315 135 310 215 C 305 295 270 375 235 410 C 215 430 190 440 178 418 C 145 380 95 300 90 220 C 85 140 125 98 200 95 Z"
-                    fill="url(#kernelBaseGradTilt)"
-                  />
-
-                  {/* Surface Shading & Crown Curvature Dent */}
-                  <path
-                    d="M 160 100 C 190 115 220 115 250 102 C 240 145 225 255 215 340 C 200 325 178 245 160 100 Z"
-                    fill="rgba(20, 25, 10, 0.42)"
-                  />
-
-                  {/* Warm Sunset Highlights Overlay */}
-                  <path
-                    d="M 200 95 C 275 92 315 135 310 215 C 305 295 270 375 235 410 C 215 430 190 440 178 418 C 145 380 95 300 90 220 C 85 140 125 98 200 95 Z"
-                    fill="url(#kernelSunHighlightTilt)"
-                  />
-
-                  {/* Bottom Botanical Tip Cap Feature */}
-                  <path
-                    d="M 182 395 C 195 405 210 405 228 395 C 220 422 205 440 196 448 C 188 440 178 420 182 395 Z"
-                    fill="url(#kernelTipCapGradTilt)"
-                    stroke="#1a1c15"
-                    strokeWidth="0.8"
-                  />
-
-                  {/* Right Edge Rim Lighting */}
-                  <path
-                    d="M 200 95 C 275 92 315 135 310 215 C 305 295 270 375 235 410 C 215 430 190 440 178 418 C 145 380 95 300 90 220 C 85 140 125 98 200 95 Z"
-                    fill="url(#kernelRightRimTilt)"
-                  />
-                </svg>
-
-                {/* CONCENTRIC RADAR TARGET FOCAL POINT WITH 3D POP */}
-                <motion.div
-                  style={{
-                    scale: combinedHotspotScale,
-                    opacity: combinedHotspotOpacity,
-                  }}
-                  className="absolute top-[52%] left-[49%] -translate-x-1/2 -translate-y-1/2 z-30 cursor-pointer pointer-events-auto group [transform:translateZ(20px)] origin-center will-change-transform"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsHotspotOpen(true);
-                  }}
-                  title="Click to inspect internal trait structure"
-                >
-                  <div className="relative flex items-center justify-center w-12 h-12">
-                    {/* Outer Concentric Target Ring */}
-                    <div className="absolute inset-0 rounded-full border border-white/50 animate-ping opacity-35" />
-                    <div className="absolute inset-1 rounded-full border border-white/70 shadow-[0_0_12px_rgba(255,255,255,0.7)]" />
-
-                    {/* Middle Concentric Ring */}
-                    <div className="absolute inset-3 rounded-full border border-white/90" />
-
-                    {/* Solid White Center Core Dot */}
-                    <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,1)] group-hover:scale-125 transition-transform duration-200" />
-                  </div>
-                </motion.div>
-              </motion.div>
-            </div>
+            <FloatingPhoneVideo
+              combinedOpacity={combinedKernelOpacity}
+            />
           </motion.div>
         </div>
       </motion.div>
-
-      {/* =========================================================================
-          KERNEL TRAIT HOTSPOT INSPECTION MODAL
-          ========================================================================= */}
-      <AnimatePresence>
-        {isHotspotOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.94 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.94 }}
-              className="relative w-full max-w-lg bg-[#041209] border border-zinc-400/40 rounded-2xl p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,0.9)]"
-            >
-              <button
-                id="close-hotspot-modal-btn"
-                onClick={() => setIsHotspotOpen(false)}
-                className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
-                aria-label="Close hotspot inspector"
-              >
-                <X className="w-4 h-4" />
-              </button>
-
-              <div className="flex items-center gap-2 text-zinc-300 text-xs font-mono uppercase tracking-widest">
-                <Sparkles className="w-4 h-4" />
-                <span>Genomic Trait Hotspot</span>
-              </div>
-
-              <h3 className="mt-2 font-display font-black text-2xl uppercase text-white">
-                Cellular Vigor & Defense Node
-              </h3>
-
-              <p className="mt-3 text-sm text-zinc-300 leading-relaxed">
-                This seed core contains Pioneer’s proprietary trait packaging with enhanced pericarp
-                density, targeted insect-resistant proteins, and moisture retention pathways isolated
-                from millions of digital simulation runs.
-              </p>
-
-              <div className="mt-5 p-4 rounded-xl bg-white/[0.03] border border-white/10 space-y-2 text-xs font-mono text-zinc-300">
-                <div className="flex justify-between">
-                  <span className="text-zinc-400">Current Hybrid:</span>
-                  <span className="text-zinc-200 font-bold">{currentProduct.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-400">Active Insect Modes:</span>
-                  <span className="text-zinc-200 font-bold">
-                    {currentProduct.modesAbove + currentProduct.modesBelow} Total
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-400">3D Kernel Control:</span>
-                  <span className="text-white">Drag anywhere to rotate 360°</span>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

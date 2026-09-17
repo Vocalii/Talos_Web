@@ -1,4 +1,5 @@
-import { motion } from 'motion/react';
+import { useEffect, useRef } from 'react';
+import { motion, useMotionValue, useSpring, useTransform } from 'motion/react';
 import { CornSeedTrait } from '../data/cornTraits';
 import { Dna, Sparkles, ShieldCheck, Sprout, Droplets, Zap, X, ChevronRight } from 'lucide-react';
 import { getTraitAtmosphere } from '../utils/traitAtmosphere';
@@ -11,9 +12,63 @@ interface GeneticTraitSidePanelProps {
 // Styled after the Talos app's own MoveDirectory card language: a thin
 // hairline frame, an inset "media" panel with bottom-anchored name and an
 // extreme-tracking category subtitle flanked by divider lines, and a small
-// pill status badge — rather than the previous dense, filled data-card look.
+// pill status badge — tilting smoothly to face the cursor wherever it moves on screen.
 export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelProps) {
   if (!trait) return null;
+
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Normalized offset from card center to cursor (-1 to 1)
+  const targetX = useMotionValue(0);
+  const targetY = useMotionValue(0);
+
+  // Smooth, dampened spring physics for fluid screen tracking
+  const springX = useSpring(targetX, { stiffness: 140, damping: 20, mass: 0.6 });
+  const springY = useSpring(targetY, { stiffness: 140, damping: 20, mass: 0.6 });
+
+  // Tilt towards cursor:
+  // When cursor is to the left (targetX < 0), rotateY > 0 so card faces left toward the cursor
+  // When cursor is to the right (targetX > 0), rotateY < 0 so card faces right toward the cursor
+  // When cursor is above (targetY < 0), rotateX < 0 so card faces up toward the cursor
+  // When cursor is below (targetY > 0), rotateX > 0 so card faces down toward the cursor
+  const rotateY = useTransform(springX, [-1, 1], ['12deg', '-12deg']);
+  const rotateX = useTransform(springY, [-1, 1], ['-8deg', '8deg']);
+
+  const theme = getTraitAtmosphere(trait);
+
+  useEffect(() => {
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!cardRef.current) return;
+      const rect = cardRef.current.getBoundingClientRect();
+      const cardCenterX = rect.left + rect.width / 2;
+      const cardCenterY = rect.top + rect.height / 2;
+
+      // Distance from card center normalized by half the viewport dimensions
+      const halfW = window.innerWidth / 2 || 1;
+      const halfH = window.innerHeight / 2 || 1;
+
+      const normX = Math.max(-1, Math.min(1, (e.clientX - cardCenterX) / halfW));
+      const normY = Math.max(-1, Math.min(1, (e.clientY - cardCenterY) / halfH));
+
+      targetX.set(normX);
+      targetY.set(normY);
+    };
+
+    const handlePointerLeave = () => {
+      targetX.set(0);
+      targetY.set(0);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: true });
+    window.addEventListener('blur', handlePointerLeave);
+    document.addEventListener('mouseleave', handlePointerLeave);
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('blur', handlePointerLeave);
+      document.removeEventListener('mouseleave', handlePointerLeave);
+    };
+  }, [targetX, targetY]);
 
   const getCategoryIcon = (category: CornSeedTrait['category']) => {
     switch (category) {
@@ -32,8 +87,6 @@ export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelP
         return <Dna className="w-10 h-10" />;
     }
   };
-
-  const theme = getTraitAtmosphere(trait);
 
   const getStatusLabel = (category: CornSeedTrait['category']) => {
     switch (category) {
@@ -88,19 +141,26 @@ export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelP
   };
 
   return (
-    <div className="w-full max-w-[260px] sm:max-w-xs select-none">
+    <div
+      className="w-full max-w-[260px] sm:max-w-xs select-none"
+      style={{ perspective: 1200 }}
+    >
       <motion.div
+        ref={cardRef}
         key={`trait-card-${trait.id}`}
         variants={containerVariants}
         initial="hidden"
         animate="visible"
         exit="exit"
         style={{
+          rotateX,
+          rotateY,
           boxShadow: `0 30px 60px -12px rgba(0, 0, 0, 0.95), 0 0 45px -5px ${theme.glow}`,
+          transformStyle: 'preserve-3d',
         }}
-        className="w-full max-h-[85vh] overflow-y-auto overflow-x-hidden rounded-sm border border-white/10 bg-black/50 backdrop-blur-2xl text-left shadow-2xl relative"
+        className="w-full max-h-[85vh] overflow-y-auto overflow-x-hidden rounded-sm border border-white/10 bg-black/60 backdrop-blur-2xl text-left shadow-2xl relative"
       >
-        {/* Cinematic Laser Sweep Line across the top rim */}
+        {/* Cinematic Laser Sweep Line across the top rim on entry */}
         <motion.div
           initial={{ x: '-100%', opacity: 0 }}
           animate={{ x: '100%', opacity: [0, 1, 1, 0] }}
@@ -115,19 +175,18 @@ export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelP
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 z-30 p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+          className="absolute top-4 right-4 z-40 p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           title="Close card (Esc or reclick node)"
           aria-label="Close trait card"
         >
           <X className="w-4 h-4" />
         </button>
 
-        {/* Inset "media" panel — renders the trait's uploaded image when
-            one is set (see the `image` field in src/data/cornTraits.ts);
-            otherwise falls back to the ambient glow + category glyph
-            placeholder, echoing the same inset-frame proportions Talos
-            uses for its move photography. */}
-        <motion.div variants={itemVariants} className="relative m-3 rounded-sm overflow-hidden aspect-[3/4]">
+        {/* Inset "media" panel — renders the trait's uploaded image with 3D elevation */}
+        <motion.div
+          variants={itemVariants}
+          className="relative m-3 rounded-sm overflow-hidden aspect-[3/4] shadow-lg border border-white/5"
+        >
           {trait.image ? (
             <img
               src={trait.image}
@@ -137,7 +196,7 @@ export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelP
           ) : (
             <div className="absolute inset-0" style={{ background: theme.blobGradient }} aria-hidden="true" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/70" aria-hidden="true" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/75" aria-hidden="true" />
 
           {!trait.image && (
             <>
@@ -156,8 +215,8 @@ export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelP
 
           {/* Status pill */}
           <span
-            className="absolute top-4 left-4 px-3 py-1 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-[8px] font-black tracking-[0.35em] uppercase"
             style={{ color: theme.accent }}
+            className="absolute top-4 left-4 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[8px] font-black tracking-[0.35em] uppercase shadow-md"
           >
             {getStatusLabel(trait.category)}
           </span>
@@ -167,22 +226,25 @@ export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelP
             <h3 className="font-display font-light text-base sm:text-lg tracking-[0.12em] uppercase text-white/95 drop-shadow-2xl leading-snug">
               {trait.traitName}
             </h3>
-            <div className="mt-1 gap-3">
-              <span className="h-px w-6 bg-white/20" />
-              <span className="text-[6px] sm:text-[8px] font-black uppercase tracking-[0.2em] text-white/40 whitespace-nowrap">
+            <div className="mt-1 flex items-center gap-2.5">
+              <span className="h-px w-5 bg-white/20" />
+              <span className="text-[6px] sm:text-[8px] font-black uppercase tracking-[0.2em] text-white/45 whitespace-nowrap">
                 {trait.category} • {trait.chromosome}
               </span>
-              <span className="h-px w-6 bg-white/20" />
+              <span className="h-px w-5 bg-white/20" />
             </div>
           </div>
         </motion.div>
 
         {/* Biological Description */}
-        <motion.p variants={itemVariants} className="px-3.5 sm:px-4 mt-2 text-[11px] sm:text-xs text-white/50 font-light leading-relaxed">
+        <motion.p
+          variants={itemVariants}
+          className="px-3.5 sm:px-4 mt-2 text-[11px] sm:text-xs text-white/50 font-light leading-relaxed"
+        >
           {trait.description}
         </motion.p>
 
-        {/* Footer: Expression Level & Quick Hint */}
+        {/* Footer: Quick Hint */}
         <motion.div
           variants={itemVariants}
           className="mt-3 px-3.5 sm:px-4 py-2.5 border-t border-white/10 flex items-center justify-between text-[9px] text-white/40 font-mono"
@@ -196,3 +258,4 @@ export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelP
     </div>
   );
 }
+
