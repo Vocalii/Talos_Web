@@ -1516,13 +1516,13 @@ export function ParallaxExperience() {
           id="main-header"
           initial={{ opacity: 0, y: -10 }}
           animate={{
-            opacity: isExploreActive ? 0 : 1,
-            y: isExploreActive ? -20 : 0,
-            pointerEvents: isExploreActive ? 'none' : 'auto',
+            opacity: isExploreActive || isFeaturesExploreActive ? 0 : 1,
+            y: isExploreActive || isFeaturesExploreActive ? -20 : 0,
+            pointerEvents: isExploreActive || isFeaturesExploreActive ? 'none' : 'auto',
           }}
           transition={{
-            duration: isExploreActive ? 0.35 : 2.2,
-            delay: isExploreActive ? 0 : 1.3,
+            duration: isExploreActive || isFeaturesExploreActive ? 0.35 : 2.2,
+            delay: isExploreActive || isFeaturesExploreActive ? 0 : 1.3,
             ease: [0.16, 1, 0.3, 1],
           }}
           className="absolute top-0 left-0 right-0 z-40 w-full py-6 md:py-8 will-change-[opacity,transform]"
@@ -1731,36 +1731,7 @@ export function ParallaxExperience() {
           )}
         </AnimatePresence>
 
-        {/* Close button for the Qrome Products "View The Features" in-place
-            panel — rendered here at the top level (not inside
-            PlaceholderSection's own transformed 3D stage) for the same
-            position:fixed containing-block reason as the button above. */}
-        <AnimatePresence>
-          {isFeaturesExploreActive && (
-            <motion.div
-              initial={{ opacity: 0, y: -16, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -16, scale: 0.9 }}
-              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              className="fixed top-24 sm:top-28 right-[6%] sm:right-[9%] lg:right-[11%] z-50 flex items-center pointer-events-auto"
-            >
-              <motion.div
-                animate={{ y: [-4, 4, -4] }}
-                transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                <button
-                  id="close-features-panel-btn"
-                  type="button"
-                  onClick={() => setIsFeaturesExploreActive(false)}
-                  className="glass group flex items-center justify-center w-14 h-14 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/50"
-                  aria-label="Close features panel"
-                >
-                  <X className="w-5 h-5 group-hover:rotate-90 transition-transform duration-200" />
-                </button>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+
 
         {/* Explore Mode HUD Guidance — rendered here (alongside the Close
             button) rather than inside ConstellationCanvas, because that

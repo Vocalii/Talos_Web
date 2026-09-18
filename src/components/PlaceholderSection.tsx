@@ -1,9 +1,75 @@
 import { useState, useRef, useEffect, MouseEvent, TouchEvent } from 'react';
-import { motion, AnimatePresence, MotionValue, useMotionValue, useSpring, useTransform } from 'motion/react';
-import { X, Sparkles, ShieldCheck } from 'lucide-react';
+import { motion, AnimatePresence, MotionValue, useMotionValue, useSpring, useTransform, LayoutGroup } from 'motion/react';
+import { X, Sparkles, ShieldCheck, ArrowLeft, ArrowRight } from 'lucide-react';
 import { LiquidPullText } from './LiquidPullText';
 import { ExploreLibraryButton } from './ExploreLibraryButton';
 import { FloatingPhoneVideo } from './FloatingPhoneVideo';
+
+export interface FeatureDetail {
+  id: string;
+  title: string;
+  category: string;
+  paragraph1: string;
+  paragraph2: string;
+  tags: string[];
+  phonePreset: string;
+  phoneInterval: string;
+  cycle: string;
+  minutes: string;
+  seconds: string;
+  accentColor: string;
+}
+
+export const TALOS_FEATURES: FeatureDetail[] = [
+  {
+    id: 'training-modes',
+    title: 'Training Modes',
+    category: 'STRUCTURED FOCUS PROTOCOL',
+    paragraph1:
+      'Training Modes are customizable (Professional Plan), structured work-break templates that eliminate the friction of starting a focus session.',
+    paragraph2:
+      'They go beyond standard timers by instantly applying scientifically-backed intervals (like "Deep Dive" or "Quick Spark") tailored to the cognitive demand of your task, ensuring you enter your Flow State faster and maintain optimal efficiency.',
+    tags: ['Frictionless Intervals', 'Cognitive Demand Tuning', 'Flow State Accelerator'],
+    phonePreset: 'The Power Hour',
+    phoneInterval: '50 • 10 MIN',
+    cycle: '1st Cycle',
+    minutes: '49',
+    seconds: '49',
+    accentColor: '#22d3ee',
+  },
+  {
+    id: 'form-ai',
+    title: 'Kinematic Form AI',
+    category: 'COMPUTER VISION KINEMATICS',
+    paragraph1:
+      'Kinematic vision models track your joint angles and velocity rep-by-rep, providing instant auditory and haptic cues during every hold.',
+    paragraph2:
+      'It eliminates guesswork on false-grip transitions, scapular depression, and hollow-body alignment—ensuring pristine execution before fatigue compromises your mechanics.',
+    tags: ['Real-Time Joint Tracking', 'Haptic Angle Cues', 'False-Grip Mechanics'],
+    phonePreset: 'Muscle-Up Protocol',
+    phoneInterval: '45 • 15 MIN',
+    cycle: '2nd Cycle',
+    minutes: '38',
+    seconds: '12',
+    accentColor: '#34d399',
+  },
+  {
+    id: 'progress-telemetry',
+    title: 'Progress Telemetry',
+    category: 'PHYSIOLOGICAL ADAPTATION',
+    paragraph1:
+      'Granular strength-to-weight curves and tendon conditioning indexes track your physiological adaptation across every meso-cycle.',
+    paragraph2:
+      'Auto-regulated volume metrics unlock higher-tier skill variations only when your connective tissue is primed, accelerating your journey toward flawless mastery.',
+    tags: ['Strength-to-Weight Curves', 'Tendon Conditioning Index', 'Auto-Regulated Volume'],
+    phonePreset: 'Peak Hypertrophy',
+    phoneInterval: '30 • 05 MIN',
+    cycle: '3rd Cycle',
+    minutes: '24',
+    seconds: '50',
+    accentColor: '#c084fc',
+  },
+];
 
 interface ProductData {
   id: number;
@@ -168,6 +234,10 @@ export function PlaceholderSection({
   const selectedProductIndex = 2;
   const setIsFeaturesExploreActive = (active: boolean) => onFeaturesExploreActiveChange?.(active);
 
+  // Active feature mode for the features structure (from user screenshot)
+  const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
+  const currentFeature = TALOS_FEATURES[activeFeatureIndex];
+
   // Lock vertical scrolling while the features panel is active, without
   // touching body overflow, so scroll position is preserved on close.
   useEffect(() => {
@@ -182,6 +252,10 @@ export function PlaceholderSection({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsFeaturesExploreActive(false);
+      } else if (e.key === 'ArrowRight') {
+        setActiveFeatureIndex((prev) => (prev + 1) % TALOS_FEATURES.length);
+      } else if (e.key === 'ArrowLeft') {
+        setActiveFeatureIndex((prev) => (prev - 1 + TALOS_FEATURES.length) % TALOS_FEATURES.length);
       }
       if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(e.key)) {
         e.preventDefault();
@@ -310,23 +384,67 @@ export function PlaceholderSection({
   const smoothX = useSpring(activeMouseX, springConfig);
   const smoothY = useSpring(activeMouseY, springConfig);
 
-  // 3D Tilt transforms across Section 3 layers
-  const stageTiltRotateX = useTransform(smoothY, [-1, 1], [4.5, -4.5]);
-  const stageTiltRotateY = useTransform(smoothX, [-1, 1], [-5.5, 5.5]);
+  // Tilt dampening multiplier: smoothly drops to 0 when in view feature mode, disabling all 3D tilt
+  const tiltFactor = useSpring(isFeaturesExploreActive ? 0 : 1, {
+    damping: 28,
+    stiffness: 140,
+  });
+
+  useEffect(() => {
+    tiltFactor.set(isFeaturesExploreActive ? 0 : 1);
+  }, [isFeaturesExploreActive, tiltFactor]);
+
+  // 3D Tilt transforms across Section 3 layers (scaled by tiltFactor)
+  const rawStageTiltRotateX = useTransform(smoothY, [-1, 1], [4.5, -4.5]);
+  const rawStageTiltRotateY = useTransform(smoothX, [-1, 1], [-5.5, 5.5]);
+  const stageTiltRotateX = useTransform(
+    [rawStageTiltRotateX, tiltFactor],
+    ([rot, factor]) => (rot as number) * (factor as number)
+  );
+  const stageTiltRotateY = useTransform(
+    [rawStageTiltRotateY, tiltFactor],
+    ([rot, factor]) => (rot as number) * (factor as number)
+  );
 
   // Text layer: subdued displacement and counter-rotation to significantly reduce tilt on the headline/copy for optimal readability
-  const textTiltRotateX = useTransform(smoothY, [-1, 1], [-3.6, 3.6]);
-  const textTiltRotateY = useTransform(smoothX, [-1, 1], [4.4, -4.4]);
-  const textDisplaceX = useTransform(smoothX, [-1, 1], [-2.5, 2.5]);
-  const textDisplaceY = useTransform(smoothY, [-1, 1], [-2, 2]);
+  const rawTextTiltRotateX = useTransform(smoothY, [-1, 1], [-3.6, 3.6]);
+  const rawTextTiltRotateY = useTransform(smoothX, [-1, 1], [4.4, -4.4]);
+  const rawTextDisplaceX = useTransform(smoothX, [-1, 1], [-2.5, 2.5]);
+  const rawTextDisplaceY = useTransform(smoothY, [-1, 1], [-2, 2]);
+
+  const textTiltRotateX = useTransform(
+    [rawTextTiltRotateX, tiltFactor],
+    ([rot, factor]) => (rot as number) * (factor as number)
+  );
+  const textTiltRotateY = useTransform(
+    [rawTextTiltRotateY, tiltFactor],
+    ([rot, factor]) => (rot as number) * (factor as number)
+  );
+  const textDisplaceX = useTransform(
+    [rawTextDisplaceX, tiltFactor],
+    ([disp, factor]) => (disp as number) * (factor as number)
+  );
+  const textDisplaceY = useTransform(
+    [rawTextDisplaceY, tiltFactor],
+    ([disp, factor]) => (disp as number) * (factor as number)
+  );
 
   // Orbit ring tilt angle
-  const orbitTiltX = useTransform(smoothY, [-1, 1], [-8, 8]);
-  const orbitTiltY = useTransform(smoothX, [-1, 1], [10, -10]);
+  const rawOrbitTiltX = useTransform(smoothY, [-1, 1], [-8, 8]);
+  const rawOrbitTiltY = useTransform(smoothX, [-1, 1], [10, -10]);
+  const orbitTiltX = useTransform(
+    [rawOrbitTiltX, tiltFactor],
+    ([tilt, factor]) => (tilt as number) * (factor as number)
+  );
+  const orbitTiltY = useTransform(
+    [rawOrbitTiltY, tiltFactor],
+    ([tilt, factor]) => (tilt as number) * (factor as number)
+  );
 
   const currentProduct = PRODUCTS[selectedProductIndex];
 
   const handleContainerMouseMove = (e: MouseEvent<HTMLDivElement>) => {
+    if (isFeaturesExploreActive) return;
     if (!externalMouseX) {
       const rect = e.currentTarget.getBoundingClientRect();
       const normalizedX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -337,8 +455,16 @@ export function PlaceholderSection({
   };
 
   // Kernel mouse-tilt additions
-  const kernelTiltX = useTransform(smoothY, [-1, 1], [9, -9]);
-  const kernelTiltY = useTransform(smoothX, [-1, 1], [-12, 12]);
+  const rawKernelTiltX = useTransform(smoothY, [-1, 1], [9, -9]);
+  const rawKernelTiltY = useTransform(smoothX, [-1, 1], [-12, 12]);
+  const kernelTiltX = useTransform(
+    [rawKernelTiltX, tiltFactor],
+    ([tilt, factor]) => (tilt as number) * (factor as number)
+  );
+  const kernelTiltY = useTransform(
+    [rawKernelTiltY, tiltFactor],
+    ([tilt, factor]) => (tilt as number) * (factor as number)
+  );
 
   // Left column combined transforms
   const combinedTextColY = useTransform(
@@ -465,14 +591,16 @@ export function PlaceholderSection({
     <div
       id="placeholder-section-container"
       onMouseMove={handleContainerMouseMove}
-      className="relative w-full h-full min-h-screen overflow-hidden select-none flex items-center justify-center [perspective:1400px]"
+      className={`relative w-full h-full min-h-screen overflow-hidden select-none flex items-center justify-center transition-all duration-700 ${
+        isFeaturesExploreActive ? '[perspective:none]' : '[perspective:1400px]'
+      }`}
     >
       {/* The shared atmospheric background is rendered once, persistently,
           by the parent (ParallaxExperience) — this component is
           foreground content only. */}
 
       {/* =========================================================================
-          3D TILTED MAIN CONTENT STAGE CONTAINER
+          3D TILTED MAIN CONTENT STAGE CONTAINER (TILT FLATTENS IN FEATURE MODE)
           ========================================================================= */}
       <motion.div
         id="products-3d-stage"
@@ -481,88 +609,434 @@ export function PlaceholderSection({
           opacity: contentOpacity || 1,
           rotateX: stageTiltRotateX,
           rotateY: stageTiltRotateY,
-          transformStyle: 'preserve-3d',
+          transformStyle: isFeaturesExploreActive ? 'flat' : 'preserve-3d',
         }}
         className="relative z-10 max-w-7xl w-full mx-auto px-6 sm:px-12 lg:px-16 pt-16 sm:pt-20 lg:pt-24 pb-8 sm:pb-12 flex flex-col justify-center min-h-[580px] lg:min-h-[640px] pointer-events-none"
       >
-        {/* Top & Middle Grid: Left Text Column + Center 3D Interactive Kernel */}
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-8 my-auto translate-y-5 sm:translate-y-7 lg:translate-y-9 [transform-style:preserve-3d]">
-          {/* LEFT COLUMN: HERO HEADLINE, DESCRIPTION & LEARN MORE (SUBDUED TILT FOR READABILITY) */}
-          <motion.div
-            id="products-left-column"
-            style={{
-              x: textDisplaceX,
-              y: combinedTextColY,
-              opacity: combinedTextColOpacity,
-              rotateX: textTiltRotateX,
-              rotateY: textTiltRotateY,
-            }}
-            className="w-full lg:w-[48%] xl:w-[46%] text-left z-20 pointer-events-auto [transform:translateZ(8px)] relative"
-          >
-            {/* Headline / description / CTA — fades and pulls back when the
-                features panel is active, mirroring how the Contenders
-                section's own text recedes in Explore Mode. */}
-            <motion.div
-              animate={{
-                opacity: isFeaturesExploreActive ? 0 : 1,
-                x: isFeaturesExploreActive ? -60 : 0,
-                filter: isFeaturesExploreActive ? 'blur(12px)' : 'blur(0px)',
-                scale: isFeaturesExploreActive ? 0.94 : 1,
-                pointerEvents: isFeaturesExploreActive ? 'none' : 'auto',
-              }}
-              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <AnimatePresence mode="wait">
+        {/* Centered Phone Stage: Phone in the exact horizontal center (50%) of the screen,
+            with text & feature button fitted cleanly on the left.
+            When clicking "VIEW THE FEATURES", this entire stage fluidly morphs into the
+            Feature Exploration Layout via LayoutGroup and coordinates. */}
+        <LayoutGroup id="features-mode-stage">
+          <div className="w-full my-auto relative">
+            {/* Cinematic Stage Ambient Flare when entering features mode */}
+            <AnimatePresence>
+              {isFeaturesExploreActive && (
                 <motion.div
-                  key={currentProduct.id}
-                  initial="hidden"
-                  animate={isRevealed ? 'visible' : 'hidden'}
-                  exit="exit"
-                >
-                  {/* Brand & Product Headline with enhanced shadow and 3D depth */}
-                  <h2
-                    id="product-section-headline"
-                    className="font-display font-medium text-2xl sm:text-3xl md:text-4xl lg:text-5xl tracking-wide uppercase text-white leading-[1.1] drop-shadow-[0_15px_35px_rgba(0,0,0,0.9)] select-none"
-                  >
-                    <motion.span
-                      variants={productHeadlineVariants}
-                      className="block drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] will-change-[filter,opacity,transform]"
-                    >
-                      <LiquidPullText
-                        text={currentProduct.brand}
-                        maxPull={1}
-                        maxBlur={5}
-                        radius={120}
-                        lerpFactor={0.12}
-                      />
-                    </motion.span>
-                    <motion.span
-                      variants={productHeadlineVariants}
-                      className="block mt-1 sm:mt-2 text-white drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] origin-left will-change-[filter,opacity,transform]"
-                    >
-                      <LiquidPullText
-                        text={currentProduct.name}
-                        maxPull={1}
-                        maxBlur={5}
-                        radius={120}
-                        lerpFactor={0.12}
-                      />
-                    </motion.span>
-                  </h2>
+                  key="feature-stage-ambient-flare"
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: [0, 0.75, 0.45], scale: [0.6, 1.35, 1.1] }}
+                  exit={{ opacity: 0, scale: 0.6, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } }}
+                  transition={{ duration: 1.6, ease: [0.16, 1, 0.3, 1] }}
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] sm:w-[850px] h-[500px] rounded-full pointer-events-none z-0 blur-3xl"
+                  style={{
+                    background: `radial-gradient(circle, ${currentFeature.accentColor}28 0%, rgba(255,255,255,0.03) 50%, transparent 75%)`,
+                  }}
+                />
+              )}
+            </AnimatePresence>
 
-                  {/* Body Paragraph */}
-                  <motion.p
-                    id="product-section-description"
-                    variants={productDescVariants}
-                    className="mt-5 sm:mt-7 text-sm sm:text-base font-light text-white/75 tracking-[0.02em] leading-relaxed max-w-xl drop-shadow-[0_3px_10px_rgba(0,0,0,0.85)] will-change-[filter,opacity,transform] select-none"
-                  >
-                    {currentProduct.description}
-                  </motion.p>
+            <div
+              className={`w-full grid grid-cols-1 lg:grid-cols-12 items-center gap-6 lg:gap-8 xl:gap-12 relative transition-all duration-1000 ${
+                isFeaturesExploreActive ? '' : '[transform-style:preserve-3d]'
+              }`}
+            >
+              {/* LEFT COLUMN: BRAND & OVERVIEW (WHEN IN OVERVIEW MODE) OR FULL FEATURE SPEC SCREEN (WHEN ACTIVE) */}
+              <motion.div
+                layout="position"
+                id="products-left-column"
+                style={{
+                  x: textDisplaceX,
+                  y: combinedTextColY,
+                  opacity: combinedTextColOpacity,
+                  rotateX: textTiltRotateX,
+                  rotateY: textTiltRotateY,
+                }}
+                transition={{
+                  layout: { duration: 1.4, ease: [0.16, 1, 0.3, 1] },
+                }}
+                className={`relative z-20 text-left pointer-events-auto w-full col-span-1 lg:row-start-1 transition-[max-width] duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                  isFeaturesExploreActive
+                    ? 'lg:col-start-1 lg:col-end-8 max-w-2xl'
+                    : 'lg:col-start-1 lg:col-end-5 max-w-md'
+                } ${
+                  isFeaturesExploreActive ? '[transform:none]' : '[transform:translateZ(8px)]'
+                }`}
+              >
+                <AnimatePresence mode="wait">
+                  {!isFeaturesExploreActive ? (
+                    <motion.div
+                      key="overview-content"
+                      initial={{ opacity: 0, x: -24, filter: 'blur(12px)' }}
+                      animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+                      exit={{
+                        opacity: 0,
+                        x: -32,
+                        filter: 'blur(14px)',
+                        transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] },
+                      }}
+                      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                      className="w-full pb-1"
+                    >
+                    {/* Brand & Product Headline */}
+                    <h2
+                      id="product-section-headline"
+                      className="font-display font-medium text-2xl sm:text-3xl lg:text-3xl xl:text-4xl tracking-wide uppercase text-white leading-[1.12] drop-shadow-[0_15px_35px_rgba(0,0,0,0.9)] select-none"
+                    >
+                      {currentProduct.brand ? (
+                        <motion.span
+                          variants={productHeadlineVariants}
+                          className="block text-xs sm:text-sm font-mono uppercase tracking-[0.25em] text-white/70 mb-2 drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] will-change-[filter,opacity,transform]"
+                        >
+                          <LiquidPullText
+                            text={currentProduct.brand}
+                            maxPull={1}
+                            maxBlur={5}
+                            radius={120}
+                            lerpFactor={0.12}
+                          />
+                        </motion.span>
+                      ) : null}
+                      <motion.span
+                        variants={productHeadlineVariants}
+                        className="block text-white drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] will-change-[filter,opacity,transform]"
+                      >
+                        <LiquidPullText
+                          text={currentProduct.name}
+                          maxPull={1}
+                          maxBlur={5}
+                          radius={120}
+                          lerpFactor={0.12}
+                        />
+                      </motion.span>
+                    </h2>
 
-                  {/* View The Features Action */}
+                    {/* Body Paragraph */}
+                    <motion.p
+                      id="product-section-description"
+                      variants={productDescVariants}
+                      className="mt-3.5 sm:mt-4 text-xs sm:text-sm lg:text-[13px] xl:text-sm font-light text-white/75 tracking-[0.02em] leading-relaxed max-w-md drop-shadow-[0_3px_10px_rgba(0,0,0,0.85)] will-change-[filter,opacity,transform] select-none"
+                    >
+                      {currentProduct.description}
+                    </motion.p>
+                  </motion.div>
+                ) : (
                   <motion.div
-                    variants={productCtaVariants}
-                    className="mt-6 sm:mt-8 will-change-[filter,opacity,transform]"
+                    key={`feature-view-${currentFeature.id}`}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    variants={{
+                      hidden: { opacity: 0 },
+                      visible: {
+                        opacity: 1,
+                        transition: {
+                          staggerChildren: 0.12,
+                          delayChildren: 0.2,
+                        },
+                      },
+                      exit: {
+                        opacity: 0,
+                        x: 16,
+                        filter: 'blur(10px)',
+                        transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
+                      },
+                    }}
+                    className="w-full pb-2"
+                  >
+                    {/* Interactive Protocol Stepper Header */}
+                    <motion.div
+                      variants={{
+                        hidden: { opacity: 0, y: -12, filter: 'blur(8px)' },
+                        visible: {
+                          opacity: 1,
+                          y: 0,
+                          filter: 'blur(0px)',
+                          transition: { duration: 0.9, ease: [0.16, 1, 0.3, 1] },
+                        },
+                      }}
+                      className="flex flex-wrap items-center gap-3 mb-5 sm:mb-6 select-none"
+                    >
+                      {/* Live Protocol Badge */}
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 backdrop-blur-md shadow-sm">
+                        <span
+                          className="w-1.5 h-1.5 rounded-full animate-pulse"
+                          style={{
+                            backgroundColor: currentFeature.accentColor,
+                            boxShadow: `0 0 10px ${currentFeature.accentColor}`,
+                          }}
+                        />
+                        <span className="text-[10px] font-mono tracking-[0.22em] uppercase text-white/90">
+                          PROTOCOL 0{activeFeatureIndex + 1} / 0{TALOS_FEATURES.length}
+                        </span>
+                      </div>
+
+                      {/* Interactive Segmented Progress Capsules */}
+                      <div className="flex items-center gap-1.5">
+                        {TALOS_FEATURES.map((feat, idx) => (
+                          <button
+                            key={feat.id}
+                            type="button"
+                            onClick={() => setActiveFeatureIndex(idx)}
+                            aria-label={`Jump to feature ${idx + 1}: ${feat.title}`}
+                            className="group py-1 cursor-pointer focus:outline-none"
+                          >
+                            <div
+                              className={`h-1.5 rounded-full transition-all duration-300 ${
+                                idx === activeFeatureIndex
+                                  ? 'w-7 bg-white shadow-[0_0_12px_rgba(255,255,255,0.7)]'
+                                  : 'w-2.5 bg-white/20 hover:bg-white/45 group-hover:w-3.5'
+                              }`}
+                            />
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Category eyebrow */}
+                      <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/40 hidden sm:inline-block">
+                        • {currentFeature.category}
+                      </span>
+                    </motion.div>
+
+                    {/* Big Clean Feature Title with Kinetic Slide */}
+                    <div className="overflow-hidden">
+                      <motion.h2
+                        id="feature-view-headline"
+                        variants={{
+                          hidden: { opacity: 0, y: 28, filter: 'blur(14px)' },
+                          visible: {
+                            opacity: 1,
+                            y: 0,
+                            filter: 'blur(0px)',
+                            transition: { duration: 1.15, ease: [0.16, 1, 0.3, 1] },
+                          },
+                        }}
+                        className="font-display font-light text-4xl sm:text-5xl lg:text-[54px] xl:text-6xl text-white tracking-tight leading-[1.08] select-none"
+                      >
+                        {currentFeature.title}
+                      </motion.h2>
+                    </div>
+
+                    {/* Luminous accent underline beam */}
+                    <motion.div
+                      variants={{
+                        hidden: { scaleX: 0, opacity: 0 },
+                        visible: {
+                          scaleX: 1,
+                          opacity: 1,
+                          transition: { duration: 1.25, delay: 0.25, ease: [0.16, 1, 0.3, 1] },
+                        },
+                      }}
+                      style={{
+                        originX: 0,
+                        background: `linear-gradient(90deg, ${currentFeature.accentColor} 0%, rgba(255,255,255,0.15) 75%, transparent 100%)`,
+                      }}
+                      className="h-[2px] w-36 sm:w-48 mt-3 rounded-full"
+                    />
+
+                    {/* Paragraph 1 */}
+                    <motion.p
+                      id="feature-view-p1"
+                      variants={{
+                        hidden: { opacity: 0, y: 18, filter: 'blur(10px)' },
+                        visible: {
+                          opacity: 1,
+                          y: 0,
+                          filter: 'blur(0px)',
+                          transition: { duration: 1.0, ease: [0.16, 1, 0.3, 1] },
+                        },
+                      }}
+                      className="mt-5 sm:mt-6 text-sm sm:text-base lg:text-[16.5px] text-zinc-300 font-light leading-relaxed max-w-xl select-none"
+                    >
+                      {currentFeature.paragraph1}
+                    </motion.p>
+
+                    {/* Paragraph 2 */}
+                    <motion.p
+                      id="feature-view-p2"
+                      variants={{
+                        hidden: { opacity: 0, y: 18, filter: 'blur(10px)' },
+                        visible: {
+                          opacity: 1,
+                          y: 0,
+                          filter: 'blur(0px)',
+                          transition: { duration: 1.0, ease: [0.16, 1, 0.3, 1] },
+                        },
+                      }}
+                      className="mt-3.5 sm:mt-4 text-sm sm:text-base lg:text-[16.5px] text-zinc-400 font-light leading-relaxed max-w-xl select-none"
+                    >
+                      {currentFeature.paragraph2}
+                    </motion.p>
+
+                    {/* Feature Micro-Badges */}
+                    <motion.div
+                      variants={{
+                        hidden: { opacity: 0, y: 14 },
+                        visible: {
+                          opacity: 1,
+                          y: 0,
+                          transition: { duration: 0.9, delay: 0.2, ease: [0.16, 1, 0.3, 1] },
+                        },
+                      }}
+                      className="mt-5 flex flex-wrap items-center gap-2 select-none"
+                    >
+                      {currentFeature.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] font-mono text-white/75 tracking-wide backdrop-blur-sm"
+                        >
+                          <span
+                            className="w-1 h-1 rounded-full"
+                            style={{ backgroundColor: currentFeature.accentColor }}
+                          />
+                          {tag}
+                        </span>
+                      ))}
+                    </motion.div>
+
+                    {/* Bottom Action Controls: Back button (first) & Next Feature button (second) */}
+                    <motion.div
+                      variants={{
+                        hidden: { opacity: 0, y: 16 },
+                        visible: {
+                          opacity: 1,
+                          y: 0,
+                          transition: { duration: 0.9, delay: 0.3, ease: [0.16, 1, 0.3, 1] },
+                        },
+                      }}
+                      className="mt-7 sm:mt-9 flex items-center gap-3.5 select-none"
+                    >
+                      {/* Back button (First) */}
+                      <button
+                        id="feature-back-to-overview-btn"
+                        type="button"
+                        onClick={() => setIsFeaturesExploreActive(false)}
+                        className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/[0.08] hover:bg-white/[0.16] border border-white/15 text-xs font-mono tracking-widest text-white/80 hover:text-white uppercase transition-all duration-300 cursor-pointer shadow-md active:scale-95"
+                        aria-label="Back to overview"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform duration-300" />
+                        <span>BACK</span>
+                      </button>
+
+                      {/* Next Feature button (Second) with luminous shimmer beam */}
+                      <button
+                        id="feature-next-btn"
+                        type="button"
+                        onClick={() => {
+                          setActiveFeatureIndex((prev) => (prev + 1) % TALOS_FEATURES.length);
+                        }}
+                        className="group relative overflow-hidden inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full bg-white text-black hover:bg-white/95 font-medium text-xs font-mono tracking-widest uppercase transition-all duration-300 cursor-pointer shadow-[0_0_24px_rgba(255,255,255,0.22)] active:scale-95"
+                        aria-label="Next feature"
+                      >
+                        {/* Shimmer sweep */}
+                        <motion.span
+                          animate={{ x: ['-100%', '220%'] }}
+                          transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut' }}
+                          className="absolute inset-0 w-1/2 bg-gradient-to-r from-transparent via-black/15 to-transparent skew-x-12 pointer-events-none"
+                        />
+                        <span className="relative z-10">NEXT FEATURE</span>
+                        <ArrowRight className="relative z-10 w-3.5 h-3.5 group-hover:translate-x-1 transition-transform duration-300" />
+                      </button>
+
+                      {/* Subtle Keyboard hint */}
+                      <span className="hidden sm:inline-block text-[10px] font-mono text-white/35 tracking-widest uppercase ml-1">
+                        (← / →)
+                      </span>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+
+              {/* PHONE COLUMN (GLIDES FLUIDLY FROM DEAD CENTER TO RIGHT IN FEATURES VIEW) */}
+              <motion.div
+                layout="position"
+                id="products-phone-stage-wrapper"
+                transition={{
+                  layout: { duration: 1.4, ease: [0.16, 1, 0.3, 1] },
+                }}
+                className={`relative flex flex-col items-center justify-center z-20 pointer-events-auto col-span-1 lg:row-start-1 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                  isFeaturesExploreActive
+                    ? 'lg:col-start-8 lg:col-end-13'
+                    : 'lg:col-start-5 lg:col-end-9'
+                }`}
+              >
+                <motion.div
+                  id="products-phone-stage"
+                  style={{
+                    y: combinedProductStageY,
+                    opacity: combinedProductStageOpacity,
+                  }}
+                  animate={{
+                    scale: isFeaturesExploreActive ? 1.05 : 1,
+                    y: isFeaturesExploreActive ? [0, -6, 0] : 0,
+                  }}
+                  transition={{
+                    scale: { duration: 1.2, ease: [0.16, 1, 0.3, 1] },
+                    y: isFeaturesExploreActive
+                      ? { duration: 4.8, repeat: Infinity, ease: 'easeInOut' }
+                      : { duration: 0.6 },
+                  }}
+                  className="relative flex flex-col items-center justify-center mx-auto"
+                >
+                  {/* Dynamic Chromatic Ambient Halo behind phone during feature mode */}
+                  <AnimatePresence>
+                    {isFeaturesExploreActive && (
+                      <motion.div
+                        key={`phone-halo-${activeFeatureIndex}`}
+                        initial={{ opacity: 0, scale: 0.75 }}
+                        animate={{ opacity: 0.65, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.75 }}
+                        transition={{ duration: 1.3, ease: [0.16, 1, 0.3, 1] }}
+                        className="absolute -inset-12 sm:-inset-16 rounded-full pointer-events-none blur-3xl z-0"
+                        style={{
+                          background:
+                            activeFeatureIndex === 0
+                              ? 'radial-gradient(circle at 50% 50%, rgba(34, 211, 238, 0.32) 0%, rgba(59, 130, 246, 0.12) 50%, transparent 75%)'
+                              : activeFeatureIndex === 1
+                              ? 'radial-gradient(circle at 50% 50%, rgba(52, 211, 153, 0.35) 0%, rgba(16, 185, 129, 0.14) 50%, transparent 75%)'
+                              : 'radial-gradient(circle at 50% 50%, rgba(192, 132, 252, 0.32) 0%, rgba(236, 72, 153, 0.12) 50%, transparent 75%)',
+                        }}
+                      />
+                    )}
+                  </AnimatePresence>
+
+                  <div className="relative z-10">
+                    <FloatingPhoneVideo
+                      combinedOpacity={combinedKernelOpacity}
+                      hideLabel={isFeaturesExploreActive}
+                      isFeaturesActive={isFeaturesExploreActive}
+                      activeFeaturePreset={currentFeature.phonePreset}
+                      activeFeatureInterval={currentFeature.phoneInterval}
+                      activeCycle={currentFeature.cycle}
+                      activeMinutes={currentFeature.minutes}
+                      activeSeconds={currentFeature.seconds}
+                      activeFeatureIndex={activeFeatureIndex}
+                    />
+                  </div>
+                </motion.div>
+              </motion.div>
+
+              {/* RIGHT COLUMN: "VIEW THE FEATURES" BUTTON (TO THE RIGHT OF THE PHONE) IN OVERVIEW MODE */}
+              <AnimatePresence>
+                {!isFeaturesExploreActive && (
+                  <motion.div
+                    key="overview-right-cta"
+                    id="products-right-column"
+                    style={{
+                      y: combinedCtaY,
+                      opacity: combinedCtaOpacity,
+                    }}
+                    initial={{ opacity: 0, scale: 0.85, filter: 'blur(12px)' }}
+                    animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                    exit={{
+                      opacity: 0,
+                      scale: 0.8,
+                      filter: 'blur(14px)',
+                      transition: { duration: 0.65, ease: [0.16, 1, 0.3, 1] },
+                    }}
+                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                    className="relative z-20 flex items-center justify-center pointer-events-auto w-full pt-6 lg:pt-0 col-span-1 lg:col-start-9 lg:col-end-13 lg:row-start-1 select-none [transform:translateZ(8px)]"
                   >
                     <ExploreLibraryButton
                       id="view-the-features-btn"
@@ -572,132 +1046,11 @@ export function PlaceholderSection({
                       lineTwo="FEATURES"
                     />
                   </motion.div>
-                </motion.div>
+                )}
               </AnimatePresence>
-            </motion.div>
-
-            {/* In-place Features Panel — replaces the old modal dialog.
-                Scroll stays locked to this section (see the effect above)
-                and the panel slides/blurs into the same space the headline
-                just vacated, instead of opening a full-screen overlay. */}
-            <AnimatePresence>
-              {isFeaturesExploreActive && (
-                <motion.div
-                  key="features-panel"
-                  initial={{ opacity: 0, x: 44, scale: 0.94, filter: 'blur(16px)' }}
-                  animate={{ opacity: 1, x: 0, scale: 1, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, x: 32, scale: 0.95, filter: 'blur(10px)' }}
-                  transition={{ duration: 0.5, ease: [0.19, 1, 0.22, 1] }}
-                  className="absolute inset-0 text-white pointer-events-auto flex flex-col"
-                >
-                  {/* Panel Header — same treatment as the headline it replaces */}
-                  <div>
-                    <span className="text-[11px] font-mono uppercase tracking-[0.25em] text-white/70">
-                      {currentProduct.brand}
-                    </span>
-                    <h3 className="mt-1 font-display font-medium text-2xl sm:text-3xl md:text-4xl uppercase tracking-wide text-white leading-[1.1] drop-shadow-[0_15px_35px_rgba(0,0,0,0.9)]">
-                      {currentProduct.name}
-                    </h3>
-                  </div>
-
-                  {/* Key Agronomic Metrics */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6 mt-6 mb-5">
-                    <div>
-                      <div className="text-[10px] font-mono text-white/50 uppercase tracking-wider">Above-Ground</div>
-                      <div className="mt-1 font-display font-medium text-lg sm:text-xl text-white">
-                        {currentProduct.modesAbove} Modes
-                      </div>
-                      <div className="text-[10px] text-white/50">Targeted insect action</div>
-                    </div>
-
-                    <div>
-                      <div className="text-[10px] font-mono text-white/50 uppercase tracking-wider">Below-Ground</div>
-                      <div className="mt-1 font-display font-medium text-lg sm:text-xl text-white">
-                        {currentProduct.modesBelow} Modes
-                      </div>
-                      <div className="text-[10px] text-white/50">Corn rootworm protection</div>
-                    </div>
-
-                    <div className="col-span-2 sm:col-span-1">
-                      <div className="text-[10px] font-mono text-white/50 uppercase tracking-wider">Yield Advantage</div>
-                      <div className="mt-1 font-display font-medium text-lg sm:text-xl text-white">
-                        {currentProduct.yieldAdvantage}
-                      </div>
-                      <div className="text-[10px] text-white/50">vs {currentProduct.comparisonTech}</div>
-                    </div>
-                  </div>
-
-                  {/* Key Features List */}
-                  <div className="space-y-2.5">
-                    <h4 className="text-xs font-medium uppercase tracking-wider text-white/60">
-                      Technology Highlights
-                    </h4>
-                    {currentProduct.keyFeatures.map((feat, idx) => (
-                      <div key={idx} className="flex items-start gap-3 text-xs sm:text-sm font-light text-white/80">
-                        <ShieldCheck className="w-4 h-4 text-white/70 mt-0.5 flex-shrink-0" />
-                        <span>{feat}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Placeholder Action Buttons — same component as "View
-                      The Features" but the 'secondary' variant (no outer
-                      breathing ring, no float, dimmer glass) so this trio
-                      reads as clearly subordinate to the primary CTA. */}
-                  <div className="mt-6 flex items-center gap-4 sm:gap-6">
-                    <div className="scale-[0.85] sm:scale-[0.9] origin-left -mr-2 sm:-mr-3">
-                      <ExploreLibraryButton
-                        id="view-specs-btn"
-                        ariaLabel="Personal Feedback"
-                        lineOne="PERSONAL"
-                        lineTwo="FEEDBACK"
-                        variant="secondary"
-                      />
-                    </div>
-                    <div className="scale-[0.85] sm:scale-[0.9] origin-left -mr-2 sm:-mr-3">
-                      <ExploreLibraryButton
-                        id="compare-traits-btn"
-                        ariaLabel="Level Up"
-                        lineOne="LEVEL"
-                        lineTwo="UP"
-                        variant="secondary"
-                      />
-                    </div>
-                    <div className="scale-[0.85] sm:scale-[0.9] origin-left">
-                      <ExploreLibraryButton
-                        id="find-a-dealer-btn"
-                        ariaLabel="Monitor Progress"
-                        lineOne="MONITOR"
-                        lineTwo="PROGRESS"
-                        variant="secondary"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Footnote citation */}
-                  <div className="mt-6 text-[10px] text-white/40 leading-relaxed">
-                    <span className="font-medium text-white/60">{currentProduct.footnote}</span> Data based on
-                    2020 on-farm trial comparisons. Individual results may vary based on weather, soil
-                    composition, and local pest pressure. Always read and follow all label directions.
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-
-          {/* CENTER / RIGHT COLUMN: PHONE VIDEO DEMO */}
-          <motion.div
-            style={{
-              y: combinedProductStageY,
-              opacity: combinedProductStageOpacity,
-            }}
-            className="w-full lg:w-[52%] xl:w-[54%] relative flex flex-col items-center justify-center min-h-[400px] sm:min-h-[460px] lg:min-h-[500px] z-20"
-          >
-            <FloatingPhoneVideo
-              combinedOpacity={combinedKernelOpacity}
-            />
-          </motion.div>
-        </div>
+            </div>
+          </div>
+        </LayoutGroup>
       </motion.div>
     </div>
   );

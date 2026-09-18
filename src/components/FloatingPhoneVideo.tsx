@@ -1,5 +1,5 @@
-import { useState, useRef, type MouseEvent } from 'react';
-import { motion, MotionValue } from 'motion/react';
+import { useState, useRef, useEffect, type MouseEvent } from 'react';
+import { motion, MotionValue, AnimatePresence } from 'motion/react';
 import {
   Play,
   Pause,
@@ -10,6 +10,9 @@ import {
   Wifi,
   Battery,
   Activity,
+  ChevronLeft,
+  Square,
+  Radio,
 } from 'lucide-react';
 
 interface FloatingPhoneVideoProps {
@@ -20,6 +23,14 @@ interface FloatingPhoneVideoProps {
   combinedRotateY?: MotionValue<number>;
   combinedRotateX?: MotionValue<number>;
   combinedOpacity?: MotionValue<number>;
+  hideLabel?: boolean;
+  isFeaturesActive?: boolean;
+  activeFeaturePreset?: string;
+  activeFeatureInterval?: string;
+  activeCycle?: string;
+  activeMinutes?: string;
+  activeSeconds?: string;
+  activeFeatureIndex?: number;
 }
 
 // Curated high-performance fitness / movement video clips
@@ -76,6 +87,13 @@ const VIDEO_TRACKS = [
 
 export function FloatingPhoneVideo({
   combinedOpacity,
+  hideLabel = false,
+  isFeaturesActive = false,
+  activeFeaturePreset = 'The Power Hour',
+  activeFeatureInterval = '50 • 10 MIN',
+  activeCycle = '1st Cycle',
+  activeMinutes = '49',
+  activeSeconds = '49',
 }: FloatingPhoneVideoProps) {
   const [selectedTrackIndex, setSelectedTrackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -84,6 +102,26 @@ export function FloatingPhoneVideo({
   const [duration, setDuration] = useState(0);
   const [showHud, setShowHud] = useState(true);
   const [isHoveringControls, setIsHoveringControls] = useState(false);
+
+  // Screen Mode: Focus or Break
+  const [phoneMode, setPhoneMode] = useState<'focus' | 'break'>('focus');
+  const [isTimerPaused, setIsTimerPaused] = useState(false);
+  const [secondsCounter, setSecondsCounter] = useState(49);
+
+  // Sync timer when activeSeconds prop changes
+  useEffect(() => {
+    if (activeSeconds) {
+      setSecondsCounter(parseInt(activeSeconds, 10) || 49);
+    }
+  }, [activeSeconds]);
+
+  useEffect(() => {
+    if (!isFeaturesActive || isTimerPaused) return;
+    const interval = setInterval(() => {
+      setSecondsCounter((prev) => (prev > 0 ? prev - 1 : 59));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isFeaturesActive, isTimerPaused]);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const currentTrack = VIDEO_TRACKS[selectedTrackIndex];
@@ -228,176 +266,360 @@ export function FloatingPhoneVideo({
             </div>
           </div>
 
-          {/* Main Video Screen Container */}
-          <div
-            className="relative flex-1 w-full bg-neutral-950 overflow-hidden cursor-pointer"
-            onClick={togglePlay}
-            onMouseEnter={() => setIsHoveringControls(true)}
-            onMouseLeave={() => setIsHoveringControls(false)}
-          >
-            {/* HTML5 Video Element */}
-            <video
-              ref={videoRef}
-              src={currentTrack.src}
-              poster={currentTrack.poster}
-              playsInline
-              loop
-              muted={isMuted}
-              onTimeUpdate={handleTimeUpdate}
-              onLoadedMetadata={handleLoadedMetadata}
-              onEnded={handleVideoEnded}
-              className="w-full h-full object-cover"
-            />
+          {/* Screen Content: Either the Time Mode Screen or the HTML5 Video with smooth crossfade transition */}
+          <div className="relative flex-1 w-full overflow-hidden flex flex-col">
+            {/* Mode-switch glass light sweep flash */}
+            <AnimatePresence>
+              <motion.div
+                key={`screen-init-flash-${isFeaturesActive}`}
+                initial={{ opacity: 0.9, x: '-100%' }}
+                animate={{ opacity: 0, x: '200%' }}
+                transition={{ duration: 1.2, ease: 'easeOut' }}
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/25 to-transparent skew-x-12 pointer-events-none z-30"
+              />
+            </AnimatePresence>
 
-            {/* Subtle Gradient Overlays for Readability */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/35 pointer-events-none" />
+            <AnimatePresence mode="wait">
+              {isFeaturesActive ? (
+                <motion.div
+                  key="screen-features-mode"
+                  initial={{ opacity: 0, scale: 0.96, filter: 'blur(8px)' }}
+                  animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, scale: 0.96, filter: 'blur(8px)' }}
+                  transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                  className="relative flex-1 w-full bg-[#08080a] flex flex-col justify-between px-3 pt-2 pb-2 select-none overflow-hidden"
+                >
+                  {/* Subtle background radial ambient */}
+                  <div
+                    className="absolute inset-0 pointer-events-none opacity-40"
+                    style={{
+                      background:
+                        'radial-gradient(circle at 50% 30%, rgba(30, 41, 59, 0.5) 0%, rgba(10, 10, 15, 0.95) 70%)',
+                    }}
+                  />
 
-            {/* TALOS REAL-TIME AI FORM HUD (Overlayed directly on video) */}
-            {showHud && (
-              <div className="absolute inset-x-2.5 top-1.5 pointer-events-none z-10 flex flex-col gap-1">
-                {/* Exercise Tag & Form Score */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/65 backdrop-blur-md border border-white/15">
-                    <Activity className="w-2.5 h-2.5 text-emerald-400 animate-pulse" />
-                    <span className="text-[7.5px] font-mono font-medium tracking-wider text-emerald-300 uppercase">
-                      {currentTrack.hudData.exercise}
+              {/* Dynamic Luminous Sweep Beam across screen on feature change */}
+              <motion.div
+                key={`screen-sweep-${activeFeaturePreset}`}
+                initial={{ y: '-100%', opacity: 0.8 }}
+                animate={{ y: '280%', opacity: 0 }}
+                transition={{ duration: 1.3, ease: 'easeOut' }}
+                className="absolute inset-x-0 h-24 bg-gradient-to-b from-transparent via-cyan-400/15 to-transparent pointer-events-none z-20"
+              />
+
+              {/* Top Focus / Break Toggle Pill */}
+              <div className="relative z-10 flex flex-col items-center">
+                <div className="rounded-full bg-white/[0.08] p-0.5 inline-flex items-center border border-white/10 shadow-inner">
+                  <button
+                    type="button"
+                    onClick={() => setPhoneMode('focus')}
+                    className={`px-3 py-0.5 rounded-full text-[9px] font-medium transition-all cursor-pointer ${
+                      phoneMode === 'focus'
+                        ? 'bg-white text-black font-semibold shadow-sm'
+                        : 'text-white/60 hover:text-white'
+                    }`}
+                  >
+                    Focus
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPhoneMode('break')}
+                    className={`px-3 py-0.5 rounded-full text-[9px] font-medium transition-all cursor-pointer ${
+                      phoneMode === 'break'
+                        ? 'bg-white text-black font-semibold shadow-sm'
+                        : 'text-white/60 hover:text-white'
+                    }`}
+                  >
+                    Break
+                  </button>
+                </div>
+
+                {/* 1st Cycle Label with subtle flip */}
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={`cycle-${activeCycle}`}
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 4 }}
+                    transition={{ duration: 0.25 }}
+                    className="mt-3 text-[8.5px] font-mono tracking-widest text-white/45 uppercase"
+                  >
+                    {activeCycle}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              {/* Huge Stacked Numbers with Kinetic Odometer Animation */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`feature-time-mode-${activeFeaturePreset}`}
+                  initial={{ opacity: 0, y: 12, filter: 'blur(8px)', scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)', scale: 1 }}
+                  exit={{ opacity: 0, y: -12, filter: 'blur(8px)', scale: 0.96 }}
+                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                  className="relative z-10 my-auto flex flex-col items-center justify-center py-2"
+                >
+                  {/* Minutes */}
+                  <div className="flex items-start justify-center leading-none">
+                    <span className="font-display font-light text-[62px] sm:text-[68px] text-white tracking-tighter leading-none select-none">
+                      {activeMinutes}
+                    </span>
+                    <span className="font-mono text-[10px] sm:text-[11px] font-medium text-white/50 ml-1 mt-2 uppercase">
+                      M
                     </span>
                   </div>
 
-                  <div className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-mono text-[7.5px] font-bold">
-                    SCORE {currentTrack.hudData.formScore}
+                  {/* Seconds */}
+                  <div className="flex items-start justify-center leading-none -mt-2">
+                    <span className="font-display font-light text-[62px] sm:text-[68px] text-white/40 tracking-tighter leading-none select-none">
+                      {String(secondsCounter).padStart(2, '0')}
+                    </span>
+                    <span className="font-mono text-[10px] sm:text-[11px] font-medium text-white/35 ml-1 mt-2 uppercase">
+                      S
+                    </span>
                   </div>
-                </div>
 
-                {/* Real-time Angle & Tempo Callouts */}
-                <div className="flex gap-1 text-[7px] font-mono text-white/80">
-                  <div className="px-1.5 py-0.5 rounded bg-black/55 backdrop-blur-sm border border-white/10 flex items-center gap-0.5">
-                    <span className="text-white/40">ANG:</span>
-                    <span className="text-white font-bold">{currentTrack.hudData.angle}</span>
+                  {/* Mode Tag & Interval */}
+                  <div className="mt-3 flex flex-col items-center gap-0.5">
+                    <div className="flex items-center gap-1.5 text-[10px] font-medium text-white/90">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)] animate-pulse" />
+                      <span>{activeFeaturePreset}</span>
+                    </div>
+                    <span className="text-[8px] font-mono tracking-wider text-white/40">
+                      {activeFeatureInterval}
+                    </span>
                   </div>
-                  <div className="px-1.5 py-0.5 rounded bg-black/55 backdrop-blur-sm border border-white/10 flex items-center gap-0.5">
-                    <span className="text-white/40">REP:</span>
-                    <span className="text-white font-bold">{currentTrack.hudData.rep}</span>
-                  </div>
-                  <div className="px-1.5 py-0.5 rounded bg-black/55 backdrop-blur-sm border border-white/10 flex items-center gap-0.5">
-                    <span className="text-white/40">TMP:</span>
-                    <span className="text-white font-bold">{currentTrack.hudData.tempo}</span>
-                  </div>
-                </div>
+                </motion.div>
+              </AnimatePresence>
 
-                {/* Animated Targeting Reticle */}
-                <div className="absolute top-14 right-2 w-9 h-9 rounded-full border border-emerald-400/35 border-dashed animate-[spin_10s_linear_infinite] flex items-center justify-center opacity-55">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                </div>
-              </div>
-            )}
+              {/* Bottom Phone Action Bar (Exact match to screenshot) */}
+              <div className="relative z-10 flex items-center justify-between px-1 pt-1 border-t border-white/[0.06]">
+                {/* Back Chevron */}
+                <button
+                  type="button"
+                  onClick={() => setIsTimerPaused(!isTimerPaused)}
+                  className="w-7 h-7 rounded-full bg-white/[0.06] hover:bg-white/15 text-white/60 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                  aria-label="Back"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
 
-            {/* Central Play Watermark Button when paused */}
-            {!isPlaying && (
-              <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-xl border border-white/40 flex items-center justify-center text-white shadow-[0_0_25px_rgba(0,0,0,0.8)]">
-                  <Play className="w-5 h-5 fill-white translate-x-0.5 text-white" />
-                </div>
-              </div>
-            )}
+                {/* Pause Button Pill */}
+                <button
+                  type="button"
+                  onClick={() => setIsTimerPaused(!isTimerPaused)}
+                  className={`px-3 py-1 rounded-full border flex items-center gap-1.5 text-[9px] font-medium transition-all cursor-pointer ${
+                    isTimerPaused
+                      ? 'border-emerald-500/70 bg-emerald-500/15 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                      : 'border-rose-500/70 bg-rose-500/10 text-white shadow-[0_0_12px_rgba(244,63,94,0.15)]'
+                  }`}
+                >
+                  <Square className={`w-2 h-2 ${isTimerPaused ? 'fill-emerald-400 text-emerald-400' : 'fill-rose-500 text-rose-500'}`} />
+                  <span>{isTimerPaused ? 'Resume' : 'Pause'}</span>
+                </button>
 
-            {/* Bottom In-Screen Controls Bar */}
-            <div
-              className={`absolute inset-x-2.5 bottom-2 z-20 flex flex-col gap-1.5 transition-opacity duration-300 ${
-                isPlaying && !isHoveringControls ? 'opacity-40 hover:opacity-100' : 'opacity-100'
-              }`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Progress Scrubber */}
-              <div
-                className="w-full h-1 rounded-full bg-white/20 cursor-pointer overflow-hidden relative group/bar"
-                onClick={handleSeek}
-              >
-                <div
-                  className="h-full bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full relative"
-                  style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
-                />
-              </div>
-
-              {/* Controls Row */}
-              <div className="flex items-center justify-between text-white text-xs">
                 <div className="flex items-center gap-1.5">
+                  {/* Reset Button */}
                   <button
                     type="button"
-                    onClick={togglePlay}
-                    className="p-1 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors cursor-pointer"
-                    aria-label={isPlaying ? 'Pause video' : 'Play video'}
+                    onClick={() => setSecondsCounter(49)}
+                    className="w-7 h-7 rounded-full bg-white/[0.06] hover:bg-white/15 text-white/60 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                    aria-label="Reset timer"
                   >
-                    {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 fill-white" />}
+                    <RotateCcw className="w-3 h-3" />
                   </button>
 
+                  {/* Ambient sound / sensor toggle */}
                   <button
                     type="button"
-                    onClick={toggleMute}
-                    className="p-1 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors cursor-pointer"
-                    aria-label={isMuted ? 'Unmute video' : 'Mute video'}
+                    onClick={() => setIsMuted(!isMuted)}
+                    className="w-7 h-7 rounded-full bg-white/[0.06] hover:bg-white/15 text-white/60 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                    aria-label="Toggle haptic / sound"
                   >
-                    {isMuted ? <VolumeX className="w-3 h-3 text-white/70" /> : <Volume2 className="w-3 h-3 text-emerald-300" />}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={restartVideo}
-                    className="p-1 rounded-full bg-white/10 hover:bg-white/25 text-white/70 hover:text-white transition-colors cursor-pointer"
-                    aria-label="Restart video"
-                  >
-                    <RotateCcw className="w-2.5 h-2.5" />
-                  </button>
-
-                  <span className="font-mono text-[7.5px] text-white/60">
-                    {formatTime(currentTime)} / {formatTime(duration)}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  {/* HUD Toggle */}
-                  <button
-                    type="button"
-                    onClick={() => setShowHud(!showHud)}
-                    className={`px-1.5 py-0.5 rounded text-[7px] font-mono tracking-wider uppercase border transition-colors cursor-pointer ${
-                      showHud
-                        ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300'
-                        : 'bg-white/5 border-white/20 text-white/50'
-                    }`}
-                  >
-                    HUD {showHud ? 'ON' : 'OFF'}
+                    <Radio className="w-3 h-3" />
                   </button>
                 </div>
               </div>
+            </motion.div>
+          ) : (
+            /* Main Video Screen Container */
+            <motion.div
+              key="screen-video-mode"
+              initial={{ opacity: 0, scale: 1.04, filter: 'blur(8px)' }}
+              animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, scale: 1.04, filter: 'blur(8px)' }}
+              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+              className="relative flex-1 w-full bg-neutral-950 overflow-hidden cursor-pointer"
+              onClick={togglePlay}
+              onMouseEnter={() => setIsHoveringControls(true)}
+              onMouseLeave={() => setIsHoveringControls(false)}
+            >
+              {/* HTML5 Video Element */}
+              <video
+                ref={videoRef}
+                src={currentTrack.src}
+                poster={currentTrack.poster}
+                playsInline
+                loop
+                muted={isMuted}
+                onTimeUpdate={handleTimeUpdate}
+                onLoadedMetadata={handleLoadedMetadata}
+                onEnded={handleVideoEnded}
+                className="w-full h-full object-cover"
+              />
 
-              {/* Quick Clip Selector Tabs */}
-              <div className="grid grid-cols-3 gap-1 pt-0.5 border-t border-white/10">
-                {VIDEO_TRACKS.map((track, idx) => (
-                  <button
-                    key={track.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedTrackIndex(idx);
-                      setIsPlaying(true);
-                      setTimeout(() => {
-                        if (videoRef.current) {
-                          videoRef.current.currentTime = 0;
-                          videoRef.current.play();
-                        }
-                      }, 50);
-                    }}
-                    className={`px-0.5 py-0.5 rounded text-center truncate font-mono text-[7px] uppercase tracking-wider transition-all cursor-pointer ${
-                      selectedTrackIndex === idx
-                        ? 'bg-white text-black font-bold shadow-sm'
-                        : 'bg-white/10 text-white/60 hover:text-white hover:bg-white/15'
-                    }`}
-                  >
-                    {track.id === 'muscle-up' ? 'Muscle-Up' : track.id === 'handstand' ? 'Handstand' : 'Lever'}
-                  </button>
-                ))}
+              {/* Subtle Gradient Overlays for Readability */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/35 pointer-events-none" />
+
+              {/* TALOS REAL-TIME AI FORM HUD (Overlayed directly on video) */}
+              {showHud && (
+                <div className="absolute inset-x-2.5 top-1.5 pointer-events-none z-10 flex flex-col gap-1">
+                  {/* Exercise Tag & Form Score */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/65 backdrop-blur-md border border-white/15">
+                      <Activity className="w-2.5 h-2.5 text-emerald-400 animate-pulse" />
+                      <span className="text-[7.5px] font-mono font-medium tracking-wider text-emerald-300 uppercase">
+                        {currentTrack.hudData.exercise}
+                      </span>
+                    </div>
+
+                    <div className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-mono text-[7.5px] font-bold">
+                      SCORE {currentTrack.hudData.formScore}
+                    </div>
+                  </div>
+
+                  {/* Real-time Angle & Tempo Callouts */}
+                  <div className="flex gap-1 text-[7px] font-mono text-white/80">
+                    <div className="px-1.5 py-0.5 rounded bg-black/55 backdrop-blur-sm border border-white/10 flex items-center gap-0.5">
+                      <span className="text-white/40">ANG:</span>
+                      <span className="text-white font-bold">{currentTrack.hudData.angle}</span>
+                    </div>
+                    <div className="px-1.5 py-0.5 rounded bg-black/55 backdrop-blur-sm border border-white/10 flex items-center gap-0.5">
+                      <span className="text-white/40">REP:</span>
+                      <span className="text-white font-bold">{currentTrack.hudData.rep}</span>
+                    </div>
+                    <div className="px-1.5 py-0.5 rounded bg-black/55 backdrop-blur-sm border border-white/10 flex items-center gap-0.5">
+                      <span className="text-white/40">TMP:</span>
+                      <span className="text-white font-bold">{currentTrack.hudData.tempo}</span>
+                    </div>
+                  </div>
+
+                  {/* Animated Targeting Reticle */}
+                  <div className="absolute top-14 right-2 w-9 h-9 rounded-full border border-emerald-400/35 border-dashed animate-[spin_10s_linear_infinite] flex items-center justify-center opacity-55">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  </div>
+                </div>
+              )}
+
+              {/* Central Play Watermark Button when paused */}
+              {!isPlaying && (
+                <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                  <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-xl border border-white/40 flex items-center justify-center text-white shadow-[0_0_25px_rgba(0,0,0,0.8)]">
+                    <Play className="w-5 h-5 fill-white translate-x-0.5 text-white" />
+                  </div>
+                </div>
+              )}
+
+              {/* Bottom In-Screen Controls Bar */}
+              <div
+                className={`absolute inset-x-2.5 bottom-2 z-20 flex flex-col gap-1.5 transition-opacity duration-300 ${
+                  isPlaying && !isHoveringControls ? 'opacity-40 hover:opacity-100' : 'opacity-100'
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Progress Scrubber */}
+                <div
+                  className="w-full h-1 rounded-full bg-white/20 cursor-pointer overflow-hidden relative group/bar"
+                  onClick={handleSeek}
+                >
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full relative"
+                    style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+                  />
+                </div>
+
+                {/* Controls Row */}
+                <div className="flex items-center justify-between text-white text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={togglePlay}
+                      className="p-1 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors cursor-pointer"
+                      aria-label={isPlaying ? 'Pause video' : 'Play video'}
+                    >
+                      {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 fill-white" />}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={toggleMute}
+                      className="p-1 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors cursor-pointer"
+                      aria-label={isMuted ? 'Unmute video' : 'Mute video'}
+                    >
+                      {isMuted ? <VolumeX className="w-3 h-3 text-white/70" /> : <Volume2 className="w-3 h-3 text-emerald-300" />}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={restartVideo}
+                      className="p-1 rounded-full bg-white/10 hover:bg-white/25 text-white/70 hover:text-white transition-colors cursor-pointer"
+                      aria-label={restartVideo ? 'Restart video' : 'Restart video'}
+                    >
+                      <RotateCcw className="w-2.5 h-2.5" />
+                    </button>
+
+                    <span className="font-mono text-[7.5px] text-white/60">
+                      {formatTime(currentTime)} / {formatTime(duration)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    {/* HUD Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setShowHud(!showHud)}
+                      className={`px-1.5 py-0.5 rounded text-[7px] font-mono tracking-wider uppercase border transition-colors cursor-pointer ${
+                        showHud
+                          ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300'
+                          : 'bg-white/5 border-white/20 text-white/50'
+                      }`}
+                    >
+                      HUD {showHud ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Clip Selector Tabs */}
+                <div className="grid grid-cols-3 gap-1 pt-0.5 border-t border-white/10">
+                  {VIDEO_TRACKS.map((track, idx) => (
+                    <button
+                      key={track.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedTrackIndex(idx);
+                        setIsPlaying(true);
+                        setTimeout(() => {
+                          if (videoRef.current) {
+                            videoRef.current.currentTime = 0;
+                            videoRef.current.play();
+                          }
+                        }, 50);
+                      }}
+                      className={`px-0.5 py-0.5 rounded text-center truncate font-mono text-[7px] uppercase tracking-wider transition-all cursor-pointer ${
+                        selectedTrackIndex === idx
+                          ? 'bg-white text-black font-bold shadow-sm'
+                          : 'bg-white/10 text-white/60 hover:text-white hover:bg-white/15'
+                      }`}
+                    >
+                      {track.id === 'muscle-up' ? 'Muscle-Up' : track.id === 'handstand' ? 'Handstand' : 'Lever'}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
           {/* Home Indicator Bar at the bottom of the screen */}
           <div className="relative z-30 py-1.5 flex items-center justify-center bg-black/90">
@@ -407,10 +629,12 @@ export function FloatingPhoneVideo({
       </motion.div>
 
       {/* Minimal Helper Label under the Phone */}
-      <div className="mt-3 flex items-center gap-1.5 text-center text-[9px] sm:text-[10px] font-mono uppercase tracking-[0.22em] text-white/50 select-none">
-        <Sparkles className="w-3 h-3 text-emerald-400" />
-        <span>TAP SCREEN TO PLAY VIDEO</span>
-      </div>
+      {!hideLabel && (
+        <div className="mt-3 flex items-center gap-1.5 text-center text-[9px] sm:text-[10px] font-mono uppercase tracking-[0.22em] text-white/50 select-none">
+          <Sparkles className="w-3 h-3 text-emerald-400" />
+          <span>TAP SCREEN TO PLAY VIDEO</span>
+        </div>
+      )}
     </div>
   );
 }
