@@ -30,10 +30,12 @@ export function PlaceholderSection2({ active = true, contentY, contentOpacity }:
       <div className="absolute inset-0 z-0" aria-hidden="true">
         <img
           src="/download-bg.webp"
+          srcSet="/download-bg-mobile.webp 1400w, /download-bg.webp 2688w"
+          sizes="100vw"
           alt=""
           className="w-full h-full object-cover object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/35 to-[#050505]/90" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-[#050505]/90" />
         <div
           className="absolute inset-0"
           style={{
@@ -45,7 +47,7 @@ export function PlaceholderSection2({ active = true, contentY, contentOpacity }:
 
       {/* Same interactive particle field used in the Hero section */}
       <div className="absolute inset-0 z-[1] pointer-events-none">
-        <ParticleField active={active} compactMax={18} />
+        <ParticleField active={active} compactMax={10} />
       </div>
 
       <motion.div

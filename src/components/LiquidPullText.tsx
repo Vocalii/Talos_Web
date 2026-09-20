@@ -13,6 +13,12 @@ interface LiquidPullTextProps {
    * for static decorative copies (e.g. a glow layer behind the real text).
    */
   interactive?: boolean;
+  /**
+   * While the cursor is away, periodically glides a virtual cursor across the
+   * text so the letters play the exact hover effect (pull, blur, glint) on
+   * their own.
+   */
+  idleShine?: boolean;
 }
 
 interface LetterPhysics {
@@ -42,12 +48,14 @@ export const LiquidPullText: React.FC<LiquidPullTextProps> = ({
   lerpFactor = 0.12,
   letterClassName = '',
   interactive = true,
+  idleShine = false,
 }) => {
   const containerRef = useRef<HTMLSpanElement>(null);
   const letterRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const physicsRef = useRef<LetterPhysics[]>([]);
   const isNearRef = useRef(false);
   const isLoopRunningRef = useRef(false);
+  const sweepingRef = useRef(false);
   const rafIdRef = useRef<number | null>(null);
 
   // Split into words so wrapping behaves naturally
@@ -104,6 +112,16 @@ export const LiquidPullText: React.FC<LiquidPullTextProps> = ({
     return () => clearTimeout(timer);
   }, [totalLetters]);
 
+  // Promote the letters to their own compositor layers as soon as the cursor
+  // is near (BEFORE the first displacement), so the first hover doesn't stall
+  // while the browser builds layers; release them once everything is at rest.
+  const setLayers = (on: boolean) => {
+    const els = letterRefs.current;
+    for (let i = 0; i < els.length; i++) {
+      if (els[i]) els[i]!.style.willChange = on ? 'transform, filter' : '';
+    }
+  };
+
   // Physics animation tick
   const startLoopIfNeeded = () => {
     if (isLoopRunningRef.current) return;
@@ -140,12 +158,10 @@ export const LiquidPullText: React.FC<LiquidPullTextProps> = ({
           const glintBrightness = (1 + (p.currentBlur / (maxBlur || 1)) * 0.35).toFixed(2);
           const blurVal = p.currentBlur > 0.05 ? `blur(${p.currentBlur.toFixed(2)}px)` : '';
           el.style.filter = blurVal ? `${blurVal} brightness(${glintBrightness})` : `brightness(${glintBrightness})`;
-          el.style.willChange = 'transform, filter';
         } else if (p.wasDisplaced) {
           // Cleanly reset DOM styles when settled back to rest
           el.style.transform = '';
           el.style.filter = '';
-          el.style.willChange = '';
           p.wasDisplaced = false;
         }
       }
@@ -154,6 +170,7 @@ export const LiquidPullText: React.FC<LiquidPullTextProps> = ({
         rafIdRef.current = requestAnimationFrame(tick);
       } else {
         isLoopRunningRef.current = false;
+        setLayers(false);
         rafIdRef.current = null;
       }
     };
@@ -180,33 +197,10 @@ export const LiquidPullText: React.FC<LiquidPullTextProps> = ({
       startLoopIfNeeded();
     };
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const rect = container.getBoundingClientRect();
-      const margin = radius + 30;
-
-      // Quick bounding check to avoid processing when cursor is distant
-      if (
-        e.clientX < rect.left - margin ||
-        e.clientX > rect.right + margin ||
-        e.clientY < rect.top - margin ||
-        e.clientY > rect.bottom + margin
-      ) {
-        if (isNearRef.current) {
-          isNearRef.current = false;
-          resetTargets();
-        }
-        return;
-      }
-
-      if (!isNearRef.current) {
-        isNearRef.current = true;
-        // Re-verify centers on re-entry in case layout shifted
-        updateLetterBounds();
-      }
-
+    // Sets every letter's targets for a pointer at (mouseX, mouseY). Used by
+    // the real cursor and by the idle-shine virtual cursor alike.
+    const applyPointer = (mouseX: number, mouseY: number) => {
       const physics = physicsRef.current;
-      const mouseX = e.clientX;
-      const mouseY = e.clientY;
 
       for (let i = 0; i < physics.length; i++) {
         const p = physics[i];
@@ -247,16 +241,101 @@ export const LiquidPullText: React.FC<LiquidPullTextProps> = ({
       startLoopIfNeeded();
     };
 
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = container.getBoundingClientRect();
+      const margin = radius + 30;
+
+      // Quick bounding check to avoid processing when cursor is distant
+      if (
+        e.clientX < rect.left - margin ||
+        e.clientX > rect.right + margin ||
+        e.clientY < rect.top - margin ||
+        e.clientY > rect.bottom + margin
+      ) {
+        if (isNearRef.current) {
+          isNearRef.current = false;
+          resetTargets();
+        }
+        return;
+      }
+
+      if (!isNearRef.current) {
+        isNearRef.current = true;
+        sweepingRef.current = false; // a real cursor takes over
+        setLayers(true);
+        // Re-verify centers on re-entry in case layout shifted
+        updateLetterBounds();
+      }
+
+      applyPointer(e.clientX, e.clientY);
+    };
+
     const handleMouseLeave = () => {
       isNearRef.current = false;
       resetTargets();
     };
+
+    // Idle shine: a virtual cursor glides left-to-right through the text
+    // every few seconds. Skipped while a real cursor is near, while off-screen
+    // / tab hidden, and for reduced motion.
+    let idleTimer: number | undefined;
+    let sweepRaf = 0;
+    let observer: IntersectionObserver | undefined;
+    if (idleShine && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const FIRST_DELAY_MS = 2800;
+      const EVERY_MS = 7000;
+      const SWEEP_MS = 2400;
+      let visible = true;
+      observer = new IntersectionObserver(([entry]) => {
+        visible = entry.isIntersecting;
+      });
+      observer.observe(container);
+
+      const runSweep = () => {
+        updateLetterBounds();
+        const rect = container.getBoundingClientRect();
+        const fromX = rect.left - radius * 0.6;
+        const toX = rect.right + radius * 0.6;
+        const y = rect.top + rect.height / 2;
+        const start = performance.now();
+        sweepingRef.current = true;
+        setLayers(true);
+
+        const frame = (now: number) => {
+          if (!sweepingRef.current) return; // a real cursor took over
+          const t = Math.min(1, (now - start) / SWEEP_MS);
+          const eased = t * t * (3 - 2 * t);
+          if (t >= 1) {
+            sweepingRef.current = false;
+            resetTargets();
+            return;
+          }
+          applyPointer(fromX + (toX - fromX) * eased, y);
+          sweepRaf = requestAnimationFrame(frame);
+        };
+        sweepRaf = requestAnimationFrame(frame);
+      };
+
+      const schedule = (delay: number) => {
+        idleTimer = window.setTimeout(() => {
+          if (visible && !document.hidden && !isNearRef.current && !sweepingRef.current) {
+            runSweep();
+          }
+          schedule(EVERY_MS);
+        }, delay);
+      };
+      schedule(FIRST_DELAY_MS);
+    }
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
     document.addEventListener('mouseleave', handleMouseLeave);
     window.addEventListener('resize', updateLetterBounds);
 
     return () => {
+      window.clearTimeout(idleTimer);
+      cancelAnimationFrame(sweepRaf);
+      observer?.disconnect();
+      sweepingRef.current = false;
       window.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseleave', handleMouseLeave);
       window.removeEventListener('resize', updateLetterBounds);
@@ -264,7 +343,7 @@ export const LiquidPullText: React.FC<LiquidPullTextProps> = ({
         cancelAnimationFrame(rafIdRef.current);
       }
     };
-  }, [maxPull, maxBlur, radius, lerpFactor, interactive]);
+  }, [maxPull, maxBlur, radius, lerpFactor, interactive, idleShine]);
 
   let letterIndexCounter = 0;
 

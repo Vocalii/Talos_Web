@@ -165,7 +165,7 @@ function OverlayContent({ onClose }: { onClose: () => void }) {
       >
         <div ref={innerRef} style={{ height: `${FEATURES_VH}vh` }} className="relative">
           <div className="sticky top-0 h-[100svh] w-full overflow-hidden">
-            <StageBackdrop />
+            <StageBackdrop carryOver={false} />
 
             {/* Phone: same size/position as the story's, then glides right */}
             <div className="absolute inset-0 z-20 flex items-center justify-center">

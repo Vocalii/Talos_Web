@@ -78,15 +78,52 @@ export const PRODUCT_VIDEO = {
 // Ported from the Talos app's AI Feedback screen
 // (Talos/src/components/exercise/FeedbackChatScreen.tsx + ui/RadialGlow.tsx)
 // so the showcase sits on the same backdrop instead of flat black.
-export const STAGE_BACKGROUND = {
+export interface StagePalette {
+  base: string;
+  gradient: string;
+  boxShadow: string;
+  /** Flat darkening layer over the gradient. */
+  overlay: string;
+  radialGlow: { gradient: string; width: string; height: string; left: string; top: string };
+  /** Optional faint image strip at the top edge (fades out downward). */
+  carryOver?: { src: string; heightPct: number; opacity: number };
+}
+
+export const STAGE_BACKGROUND: StagePalette = {
   base: '#050505',
   gradient:
-    'linear-gradient(to bottom, #1e1e1e 0%, #161616 40%, #101010 65%, #0a0a0a 82%, #050505 93%, #000000 100%)',
+    'linear-gradient(to bottom, #171412 0%, #121110 40%, #0d0c0b 65%, #090909 82%, #050505 93%, #000000 100%)',
   boxShadow:
     'inset 0 1px 0 rgba(255,255,255,0.06), inset 0 60px 100px -40px rgba(0,0,0,0.6)',
   /** Flat darkening layer over the gradient. */
   overlay: 'rgba(0,0,0,0.2)',
-  /** Soft neutral glow at the top of the screen. */
+  /** Soft warm (bronze) glow at the top of the screen, echoing the hero's light. */
+  radialGlow: {
+    gradient:
+      'radial-gradient(ellipse 70% 60% at 50% 20%, rgba(214, 160, 90, 0.14) 0%, rgba(150, 105, 60, 0.06) 40%, transparent 70%)',
+    width: '160%',
+    height: '80%',
+    left: '-30%',
+    top: '0%',
+  },
+  /**
+   * Faint, blurred strip of the Contenders ruins at the top edge, fading out
+   * downward, so the scene visibly carries across the diagonal cut.
+   */
+  carryOver: { src: '/contenders-bg.webp', heightPct: 38, opacity: 0.24 },
+};
+
+/**
+ * The Insights (horizontal scroll) section keeps the original Talos
+ * AI-feedback backdrop: neutral grey gradient, neutral top glow, no ruins
+ * strip. It crossfades in over the warm story backdrop during the handoff.
+ */
+export const INSIGHTS_BACKGROUND: StagePalette = {
+  base: '#050505',
+  gradient:
+    'linear-gradient(to bottom, #1e1e1e 0%, #161616 40%, #101010 65%, #0a0a0a 82%, #050505 93%, #000000 100%)',
+  boxShadow: STAGE_BACKGROUND.boxShadow,
+  overlay: 'rgba(0,0,0,0.2)',
   radialGlow: {
     gradient:
       'radial-gradient(ellipse 70% 60% at 50% 20%, rgba(140, 140, 140, 0.25) 0%, rgba(90, 90, 90, 0.12) 40%, transparent 70%)',
@@ -95,7 +132,7 @@ export const STAGE_BACKGROUND = {
     left: '-30%',
     top: '0%',
   },
-} as const;
+};
 
 // ---------------------------------------------------------------------------
 // Intro transition ranges (fractions of section scroll progress)
@@ -252,3 +289,22 @@ export const FEATURES_STAGES: readonly FeatureStage[] = TALOS_FEATURES.map((feat
   poster: (FEATURE_CLIPS[feature.id] || PRODUCT_VIDEO.src).replace('.mp4', '-poster.webp'),
   range: [index / TALOS_FEATURES.length, (index + 1) / TALOS_FEATURES.length] as ScrollRange,
 }));
+
+/**
+ * Mirror of the story's top treatment, at the BOTTOM edge of the Insights
+ * section: a warm dark wash, a bronze glow and only a faint hint of the
+ * Download image (fading out upward). Eases in near the end of the horizontal
+ * scroll so the download scene is foreshadowed without the picture reading.
+ */
+export const DOWNLOAD_CARRYOVER = {
+  src: '/download-carryover.webp',
+  heightPct: 45,
+  /** Strength of the picture itself under the wash (kept very low). */
+  imageOpacity: 0.22,
+  /** Warm dark wash rising from the bottom edge (same tone as the story's gradient). */
+  wash: 'linear-gradient(to top, rgba(23,20,18,0.92) 0%, rgba(18,17,16,0.6) 45%, transparent 100%)',
+  /** Bronze glow, the story's top glow flipped to the bottom. */
+  glow: 'radial-gradient(ellipse 70% 80% at 50% 100%, rgba(214, 160, 90, 0.14) 0%, rgba(150, 105, 60, 0.06) 40%, transparent 70%)',
+  /** Scroll distance (fraction of the whole track) the fade-in starts before the carousel ends. */
+  leadProgress: 0.05,
+} as const;

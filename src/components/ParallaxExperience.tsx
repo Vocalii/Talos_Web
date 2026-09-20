@@ -26,7 +26,12 @@ import {
 import { ProductStoryStage } from './product-story/ProductStoryStage';
 import { StageBackdrop } from './product-story/StageBackdrop';
 import { useIsDesktop } from './product-story/useIsDesktop';
-import { STORY_HANDOFF_VH, getStoryLayout } from './product-story/productStory.config';
+import {
+  DOWNLOAD_CARRYOVER,
+  INSIGHTS_BACKGROUND,
+  STORY_HANDOFF_VH,
+  getStoryLayout,
+} from './product-story/productStory.config';
 
 // Only needed once the story is on screen, so it stays out of the entry chunk.
 const FeaturesOverlay = lazy(() =>
@@ -563,6 +568,17 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
     [0, 1]
   );
 
+  const insightsBackdropOpacity = useTransform(smoothProgress, [HANDOFF_START, HANDOFF_END], [0, 1], {
+    clamp: true,
+  });
+  // Warm wash + glow + faint download image at the bottom edge: eases in over the last stretch of
+  // the carousel and the gap before Cut 3, so the next scene is foreshadowed.
+  const downloadCarryOverOpacity = useTransform(
+    smoothProgress,
+    [CAROUSEL_END - DOWNLOAD_CARRYOVER.leadProgress, CUT3_START],
+    [0, 1],
+    { clamp: true }
+  );
   const insightsContentY = useTransform(
     smoothProgress,
     [HANDOFF_START, HANDOFF_END, CAROUSEL_END, CUT3_START],
@@ -948,6 +964,8 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
             >
               <img
                 src="/hero.webp"
+                srcSet="/hero-mobile.webp 1400w, /hero.webp 2912w"
+                sizes="100vw"
                 alt="Talos Calisthenics Anatomical Sculpture"
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover object-center"
@@ -1017,7 +1035,7 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
               pointerEvents: heroPointerEvents,
               perspective: 1200,
             }}
-            className="absolute inset-0 z-20 flex flex-col justify-end pointer-events-none pb-8 sm:pb-12 md:pb-14 lg:pb-16 px-4 sm:px-8 md:px-12"
+            className="absolute inset-0 z-20 flex flex-col justify-end pointer-events-none pb-24 sm:pb-28 md:pb-32 lg:pb-16 px-4 sm:px-8 md:px-12"
           >
             {/* Atmospheric ambient backlight behind the bottom headline */}
             <div
@@ -1081,8 +1099,9 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
                     maxPull={1.1}
                     maxBlur={5}
                     radius={140}
-                    lerpFactor={0.12}
+                    lerpFactor={0.2}
                     letterClassName="text-metallic-headline"
+                    idleShine
                   />
                 </motion.span>
               </motion.h1>
@@ -1123,10 +1142,10 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
               className="absolute -inset-[5%] pointer-events-none z-0"
             >
               <img
-                src="/data-constellation.webp"
-                alt="Biotech Data Constellation"
+                src="/contenders-bg.webp"
+                alt="Ancient ruins in fog"
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-center opacity-65 mix-blend-screen"
+                className="w-full h-full object-cover object-center opacity-90"
               />
 
               {/* Dynamic Lighting Sheen */}
@@ -1135,7 +1154,7 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
                   background: useTransform(
                     [lightX, lightY, globalGlowColor],
                     ([lx, ly, glow]) =>
-                      `radial-gradient(circle at ${lx} ${ly}, ${glow} 0%, rgba(34, 197, 94, 0.05) 40%, transparent 75%)`
+                      `radial-gradient(circle at ${lx} ${ly}, ${glow} 0%, rgba(255, 255, 255, 0.02) 40%, transparent 75%)`
                   ),
                 }}
                 className="absolute inset-0 pointer-events-none"
@@ -1145,18 +1164,18 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
               {/* Base Atmospheric Emerald Fog */}
               <motion.div
                 style={{
-                  opacity: useTransform(smoothProgress, [0.10 * K1, 0.65 * K1], [0.85, 0.4]),
+                  opacity: useTransform(smoothProgress, [0.10 * K1, 0.65 * K1], [0.5, 0.25]),
                 }}
-                className="absolute inset-0 bg-radial-[circle_at_60%_45%] from-emerald-950/45 via-[#0a120d]/80 to-[#050505]/95 pointer-events-none"
+                className="absolute inset-0 bg-radial-[circle_at_60%_45%] from-transparent via-[#050505]/30 to-[#050505]/70 pointer-events-none"
                 aria-hidden="true"
               />
 
               {/* Dark Obsidian Shift Atmosphere Fog */}
               <motion.div
                 style={{
-                  opacity: useTransform(smoothProgress, [0.35 * K1, 0.85 * K1], [0, 0.92]),
+                  opacity: useTransform(smoothProgress, [0.35 * K1, 0.85 * K1], [0, 0.5]),
                   background:
-                    'radial-gradient(ellipse at 60% 45%, rgba(6, 46, 28, 0.45) 0%, rgba(5, 15, 10, 0.82) 50%, #020604 100%)',
+                    'radial-gradient(ellipse at 60% 45%, rgba(0, 0, 0, 0) 0%, rgba(3, 5, 4, 0.4) 50%, rgba(2, 4, 3, 0.85) 100%)',
                 }}
                 className="absolute inset-0 pointer-events-none"
                 aria-hidden="true"
@@ -1168,7 +1187,7 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
                   background: useTransform(
                     globalGradBase,
                     (base) =>
-                      `linear-gradient(to right, ${base} 0%, rgba(3, 4, 6, 0.75) 45%, transparent 100%)`
+                      `linear-gradient(to right, ${base} 0%, rgba(3, 4, 6, 0.55) 40%, transparent 100%)`
                   ),
                 }}
                 className="absolute inset-0 pointer-events-none"
@@ -1179,7 +1198,7 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
                   background: useTransform(
                     globalGradBase,
                     (base) =>
-                      `linear-gradient(to top, ${base} 0%, transparent 45%, ${base} 100%)`
+                      `linear-gradient(to top, ${base} 0%, transparent 38%, transparent 62%, ${base} 100%)`
                   ),
                 }}
                 className="absolute inset-0 pointer-events-none"
@@ -1296,7 +1315,7 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
               opacity: contendersTextOpacity,
               pointerEvents: contendersPointerEvents,
             }}
-            className="absolute inset-0 z-20 flex flex-col lg:flex-row items-start lg:items-center justify-center lg:justify-between gap-5 sm:gap-7 lg:gap-0 pt-24 pb-32 sm:pb-36 lg:py-0 px-6 sm:px-12 lg:px-16 max-w-7xl w-full mx-auto pointer-events-none"
+            className="absolute inset-0 z-20 flex flex-col lg:flex-row items-start lg:items-center justify-center lg:justify-between gap-5 sm:gap-7 lg:gap-0 pt-32 pb-4 sm:pb-6 lg:py-0 px-6 sm:px-12 lg:px-16 max-w-7xl w-full mx-auto pointer-events-none"
           >
             <motion.div
               animate={{
@@ -1385,7 +1404,7 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
               initial="hidden"
               animate={isExploreActive ? 'exploreHidden' : isSectionRevealed ? 'visible' : 'hidden'}
               style={{ pointerEvents: isExploreActive ? 'none' : 'auto' }}
-              className="pointer-events-auto [transform:translateZ(32px)] flex items-center justify-center order-first lg:order-none self-end mr-6 sm:mr-16 lg:mr-8 xl:mr-14 lg:self-auto"
+              className="pointer-events-auto [transform:translateZ(32px)] flex items-center justify-center self-end mr-6 sm:mr-16 lg:mr-8 xl:mr-14 lg:self-auto"
             >
               <ExploreLibraryButton onClick={() => handleExploreActiveChange(true)} />
             </motion.div>
@@ -1410,11 +1429,36 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
           }}
           className="absolute inset-0 w-full h-full z-30 overflow-hidden bg-[#050505] [perspective:1400px]"
         >
-          {/* Persistent shared background — rendered once, never slides or
-              fades. Both the Product Story and the Insights content sit on
-              top of this as foreground layers, so the backdrop (the Talos
-              AI-feedback gradient) never changes through the handoff. */}
+          {/* Persistent warm story background — rendered once, never slides.
+              The Product Story sits on it as a foreground layer. */}
           <StageBackdrop />
+          {/* Insights keeps the original neutral backdrop: it fades in over the
+              warm story backdrop across the same handoff range. */}
+          <motion.div
+            style={{ opacity: insightsBackdropOpacity }}
+            className="absolute inset-0 pointer-events-none"
+            aria-hidden="true"
+          >
+            <StageBackdrop palette={INSIGHTS_BACKGROUND} carryOver={false} />
+          </motion.div>
+          <motion.div
+            style={{ opacity: downloadCarryOverOpacity, height: `${DOWNLOAD_CARRYOVER.heightPct}%` }}
+            className="absolute inset-x-0 bottom-0 pointer-events-none"
+            aria-hidden="true"
+          >
+            <img
+              src={DOWNLOAD_CARRYOVER.src}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover object-[50%_85%]"
+              style={{
+                opacity: DOWNLOAD_CARRYOVER.imageOpacity,
+                maskImage: 'linear-gradient(to top, #000 0%, transparent 100%)',
+                WebkitMaskImage: 'linear-gradient(to top, #000 0%, transparent 100%)',
+              }}
+            />
+            <div className="absolute inset-0" style={{ background: DOWNLOAD_CARRYOVER.glow }} />
+            <div className="absolute inset-0" style={{ background: DOWNLOAD_CARRYOVER.wash }} />
+          </motion.div>
 
           <motion.div
             style={{
@@ -1494,7 +1538,7 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
             <button
               id="header-pioneer-logo-btn"
               onClick={scrollToHero}
-              className="focus:outline-none cursor-pointer hover:opacity-90 active:scale-95 transition-opacity"
+              className="focus:outline-none cursor-pointer active:scale-95 transition-transform"
               aria-label="Return to top"
             >
               <PioneerLogo />
@@ -1521,7 +1565,8 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
               <span className="glass absolute inset-0 rounded-full" aria-hidden="true" />
 
               <span className="relative font-display font-medium text-[10px] sm:text-[11px] tracking-[0.16em] text-white/85 group-hover:text-white uppercase whitespace-nowrap transition-colors duration-200">
-                Get Early Access
+                <span className="sm:hidden">Get Access</span>
+                <span className="hidden sm:inline">Get Early Access</span>
               </span>
             </button>
           </div>

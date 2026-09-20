@@ -26,13 +26,12 @@ export function GeneticTraitSidePanel({ trait, onClose }: GeneticTraitSidePanelP
   const springX = useSpring(targetX, { stiffness: 140, damping: 20, mass: 0.6 });
   const springY = useSpring(targetY, { stiffness: 140, damping: 20, mass: 0.6 });
 
-  // Tilt towards cursor:
-  // When cursor is to the left (targetX < 0), rotateY > 0 so card faces left toward the cursor
-  // When cursor is to the right (targetX > 0), rotateY < 0 so card faces right toward the cursor
-  // When cursor is above (targetY < 0), rotateX < 0 so card faces up toward the cursor
-  // When cursor is below (targetY > 0), rotateX > 0 so card faces down toward the cursor
-  const rotateY = useTransform(springX, [-1, 1], ['12deg', '-12deg']);
-  const rotateX = useTransform(springY, [-1, 1], ['-8deg', '8deg']);
+  // Tilt towards cursor. In CSS, rotateY(+) turns the card's face to the RIGHT
+  // and rotateX(+) turns it UP, so:
+  // cursor left  (x < 0) -> rotateY < 0      cursor right (x > 0) -> rotateY > 0
+  // cursor above (y < 0) -> rotateX > 0      cursor below (y > 0) -> rotateX < 0
+  const rotateY = useTransform(springX, [-1, 1], ['-6deg', '6deg']);
+  const rotateX = useTransform(springY, [-1, 1], ['4deg', '-4deg']);
 
   const theme = getTraitAtmosphere(trait);
 

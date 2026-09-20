@@ -37,11 +37,11 @@ interface InteractiveSpark {
 interface ParticleFieldProps {
   /** When false the animation loop stops (e.g. section scrolled off-screen). */
   active?: boolean;
-  /** Particle cap below 768px wide (default 44; desktop cap is 76). */
+  /** Particle cap below 768px wide (default 22; 44 up to 1024px; 76 above). */
   compactMax?: number;
 }
 
-export function ParticleField({ active = true, compactMax = 44 }: ParticleFieldProps) {
+export function ParticleField({ active = true, compactMax = 22 }: ParticleFieldProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const activeRef = useRef(active);
   const resumeRef = useRef<() => void>(() => {});
@@ -104,7 +104,7 @@ export function ParticleField({ active = true, compactMax = 44 }: ParticleFieldP
     ];
 
     // Rich cinematic density: 55-80 particles balanced for performance and visual grandeur
-    const particleCount = Math.min(Math.floor((window.innerWidth * window.innerHeight) / 22000) + 36, window.innerWidth < 768 ? compactMax : 76);
+    const particleCount = Math.min(Math.floor((window.innerWidth * window.innerHeight) / 22000) + 36, window.innerWidth < 768 ? compactMax : window.innerWidth < 1024 ? 44 : 76);
     const particles: Particle[] = [];
 
     for (let i = 0; i < particleCount; i++) {
