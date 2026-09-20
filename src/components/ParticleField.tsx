@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { getCanvasDpr } from '../utils/canvasDpr';
 
 interface Particle {
   x: number;
@@ -33,8 +34,17 @@ interface InteractiveSpark {
   color: string;
 }
 
-export function ParticleField() {
+interface ParticleFieldProps {
+  /** When false the animation loop stops (e.g. section scrolled off-screen). */
+  active?: boolean;
+  /** Particle cap below 768px wide (default 44; desktop cap is 76). */
+  compactMax?: number;
+}
+
+export function ParticleField({ active = true, compactMax = 44 }: ParticleFieldProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const activeRef = useRef(active);
+  const resumeRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -43,7 +53,7 @@ export function ParticleField() {
     if (!ctx) return;
 
     let animationFrameId: number;
-    let dpr = window.devicePixelRatio || 1;
+    let dpr = getCanvasDpr();
     let width = 0;
     let height = 0;
 
@@ -62,7 +72,11 @@ export function ParticleField() {
 
     const handleResize = () => {
       if (!canvas) return;
-      dpr = window.devicePixelRatio || 1;
+      // Mobile browsers fire `resize` as the URL bar collapses while scrolling;
+      // reallocating the canvas each time causes visible jank, so ignore
+      // small height-only changes.
+      if (width && window.innerWidth === width && Math.abs(window.innerHeight - height) < 160) return;
+      dpr = getCanvasDpr();
       width = window.innerWidth;
       height = window.innerHeight;
       canvas.width = width * dpr;
@@ -90,7 +104,7 @@ export function ParticleField() {
     ];
 
     // Rich cinematic density: 55-80 particles balanced for performance and visual grandeur
-    const particleCount = Math.min(Math.floor((window.innerWidth * window.innerHeight) / 22000) + 36, 76);
+    const particleCount = Math.min(Math.floor((window.innerWidth * window.innerHeight) / 22000) + 36, window.innerWidth < 768 ? compactMax : 76);
     const particles: Particle[] = [];
 
     for (let i = 0; i < particleCount; i++) {
@@ -256,8 +270,14 @@ export function ParticleField() {
     // Animation frame timing
     let time = 0;
 
-    // Main animation loop
+    // Main animation loop. Stops rescheduling while `active` is false (the
+    // last frame stays on the canvas) and is restarted by the effect below.
+    let running = true;
     const render = () => {
+      if (!activeRef.current) {
+        running = false;
+        return;
+      }
       ctx.clearRect(0, 0, width, height);
       time += 0.018;
 
@@ -487,6 +507,12 @@ export function ParticleField() {
       animationFrameId = requestAnimationFrame(render);
     };
 
+    resumeRef.current = () => {
+      if (running) return;
+      running = true;
+      animationFrameId = requestAnimationFrame(render);
+    };
+
     render();
 
     return () => {
@@ -499,6 +525,11 @@ export function ParticleField() {
       cancelAnimationFrame(animationFrameId);
     };
   }, []);
+
+  useEffect(() => {
+    activeRef.current = active;
+    if (active) resumeRef.current();
+  }, [active]);
 
   return (
     <canvas

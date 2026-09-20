@@ -5,11 +5,12 @@ import { ParticleField } from './ParticleField';
 import { CinematicDownloadButton } from './CinematicDownloadButton';
 
 interface PlaceholderSection2Props {
+  active?: boolean;
   contentY?: MotionValue<string>;
   contentOpacity?: MotionValue<number>;
 }
 
-export function PlaceholderSection2({ contentY, contentOpacity }: PlaceholderSection2Props) {
+export function PlaceholderSection2({ active = true, contentY, contentOpacity }: PlaceholderSection2Props) {
   const [isNotified, setIsNotified] = useState(false);
 
   const handleNotify = () => {
@@ -28,7 +29,7 @@ export function PlaceholderSection2({ contentY, contentOpacity }: PlaceholderSec
           gradient scrim atmosphere technique used elsewhere on the site */}
       <div className="absolute inset-0 z-0" aria-hidden="true">
         <img
-          src="/download-bg.png"
+          src="/download-bg.webp"
           alt=""
           className="w-full h-full object-cover object-center"
         />
@@ -44,7 +45,7 @@ export function PlaceholderSection2({ contentY, contentOpacity }: PlaceholderSec
 
       {/* Same interactive particle field used in the Hero section */}
       <div className="absolute inset-0 z-[1] pointer-events-none">
-        <ParticleField />
+        <ParticleField active={active} compactMax={18} />
       </div>
 
       <motion.div

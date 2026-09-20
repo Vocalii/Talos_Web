@@ -130,10 +130,12 @@ export const LiquidPullText: React.FC<LiquidPullTextProps> = ({
           p.wasDisplaced = true;
           el.style.transform = `translate3d(${p.currentX.toFixed(2)}px, ${p.currentY.toFixed(2)}px, 0) rotate(${p.currentRotate.toFixed(2)}deg) scale(${p.currentScaleX.toFixed(3)}, ${p.currentScaleY.toFixed(3)})`;
           el.style.filter = `blur(${p.currentBlur.toFixed(2)}px)`;
+          el.style.willChange = 'transform, filter';
         } else if (p.wasDisplaced) {
           // Cleanly reset DOM styles when settled back to rest
           el.style.transform = '';
           el.style.filter = '';
+          el.style.willChange = '';
           p.wasDisplaced = false;
         }
       }
@@ -276,7 +278,7 @@ export const LiquidPullText: React.FC<LiquidPullTextProps> = ({
                       ref={(el) => {
                         letterRefs.current[currentIdx] = el;
                       }}
-                      className="inline-block will-change-[transform,filter] select-none"
+                      className="inline-block select-none"
                       style={{ transformOrigin: 'center center' }}
                     >
                       {char}

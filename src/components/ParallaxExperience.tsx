@@ -1,19 +1,33 @@
-import { useState, useRef, useEffect, TouchEvent } from 'react';
+import { lazy, Suspense, useState, useRef, useEffect, useCallback, TouchEvent } from 'react';
 import { motion, useMotionValue, useSpring, useTransform, useScroll, AnimatePresence } from 'motion/react';
 import { ChevronDown, Check, X } from 'lucide-react';
 import { PioneerLogo } from './PioneerLogo';
 import { ParticleField } from './ParticleField';
 import { ConstellationCanvas } from './ConstellationCanvas';
-import { PlaceholderSection } from './PlaceholderSection';
 import { HorizontalTextScrollSection } from './HorizontalTextScrollSection';
-import { ProductsAtmosphereBackground } from './ProductsAtmosphereBackground';
 import { PlaceholderSection2 } from './PlaceholderSection2';
 import { LiquidPullText } from './LiquidPullText';
 import { ExploreLibraryButton } from './ExploreLibraryButton';
-import { GeneticLibraryModal } from './GeneticLibraryModal';
 import { GeneticTraitSidePanel } from './GeneticTraitTooltip';
 import { CornSeedTrait } from '../data/cornTraits';
 import { getTraitAtmosphere } from '../utils/traitAtmosphere';
+import {
+  sectionContentVariants,
+  headlineLineVariants,
+  paragraphVariants,
+  featureListContainerVariants,
+  featureItemVariants,
+  exploreButtonVariants,
+} from './entranceVariants';
+import { ProductStoryStage } from './product-story/ProductStoryStage';
+import { StageBackdrop } from './product-story/StageBackdrop';
+import { useIsDesktop } from './product-story/useIsDesktop';
+import { STORY_HANDOFF_VH, getStoryLayout } from './product-story/productStory.config';
+
+// Only needed once the story is on screen, so it stays out of the entry chunk.
+const FeaturesOverlay = lazy(() =>
+  import('./product-story/FeaturesOverlay').then((m) => ({ default: m.FeaturesOverlay }))
+);
 
 interface SlideData {
   headline: string[];
@@ -51,139 +65,6 @@ const SLIDES: SlideData[] = [
   },
 ];
 
-// Staggered entrance variants for Section 2 content reveal
-const sectionContentVariants = {
-  hidden: {
-    opacity: 0,
-  },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.11,
-      delayChildren: 0.14,
-    },
-  },
-  exit: {
-    opacity: 0,
-    y: -12,
-    transition: {
-      duration: 0.3,
-      ease: [0.4, 0, 0.2, 1],
-    },
-  },
-};
-
-const headlineLineVariants = {
-  hidden: { opacity: 0, y: 24, filter: 'blur(30px)', scale: 0.98 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    filter: 'blur(0px)',
-    scale: 1,
-    transition: {
-      duration: 2.4,
-      ease: [0.16, 1, 0.3, 1],
-    },
-  },
-  exit: {
-    opacity: 0,
-    y: -12,
-    filter: 'blur(12px)',
-    transition: {
-      duration: 0.35,
-      ease: [0.4, 0, 0.2, 1],
-    },
-  },
-};
-
-const paragraphVariants = {
-  hidden: { opacity: 0, y: 18, filter: 'blur(20px)' },
-  visible: {
-    opacity: 1,
-    y: 0,
-    filter: 'blur(0px)',
-    transition: {
-      duration: 2.2,
-      delay: 0.35,
-      ease: [0.16, 1, 0.3, 1],
-    },
-  },
-  exit: {
-    opacity: 0,
-    y: -8,
-    filter: 'blur(8px)',
-    transition: {
-      duration: 0.3,
-      ease: [0.4, 0, 0.2, 1],
-    },
-  },
-};
-
-const featureListContainerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.16,
-      delayChildren: 0.6,
-    },
-  },
-};
-
-const featureItemVariants = {
-  hidden: { opacity: 0, x: -14, y: 8, filter: 'blur(16px)' },
-  visible: {
-    opacity: 1,
-    x: 0,
-    y: 0,
-    filter: 'blur(0px)',
-    transition: {
-      duration: 1.8,
-      ease: [0.16, 1, 0.3, 1],
-    },
-  },
-  exit: {
-    opacity: 0,
-    filter: 'blur(6px)',
-    transition: {
-      duration: 0.25,
-      ease: [0.4, 0, 0.2, 1],
-    },
-  },
-};
-
-// Roughly matches how long the headline/paragraph/feature-list stagger
-// sequence above takes to visibly settle, so the Explore The Library button
-// only starts phasing in once that text has already appeared — not at the
-// same moment. Only applied on the one-time hidden -> visible entrance (see
-// exploreButtonVariants below); toggling explore mode afterward uses its own
-// separate, undelayed transition.
-const EXPLORE_BUTTON_ENTRANCE_DELAY = 1.1;
-
-const exploreButtonVariants = {
-  hidden: { opacity: 0, y: 16, scale: 0.9, filter: 'blur(16px)' },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    filter: 'blur(0px)',
-    transition: {
-      duration: 1.4,
-      delay: EXPLORE_BUTTON_ENTRANCE_DELAY,
-      ease: [0.16, 1, 0.3, 1],
-    },
-  },
-  exploreHidden: {
-    opacity: 0,
-    y: 0,
-    scale: 0.8,
-    filter: 'blur(8px)',
-    transition: {
-      duration: 0.45,
-      ease: [0.16, 1, 0.3, 1],
-    },
-  },
-};
 
 // 4-Section Scroll Track (Hero -> Computers & Simulations -> Qrome Products
 // [+ Agronomic Insights handoff within it] -> Placeholder 2).
@@ -196,34 +77,67 @@ const exploreButtonVariants = {
 // Adjusting the pacing going forward should only ever mean changing one of
 // these numbers, with no other formula to recompute by hand.
 const HERO_VH = 240;
-const CONTENDERS_VH = 240; // Contenders revealed & Cut 2 transition to Qrome + immediate continuous handoff into Insights
+const CONTENDERS_VH = 240; // Contenders revealed & Cut 2 transition into the Product Story
+// Product Story (video shrinks into a pinned phone, then headline + button).
+// STORY_VH / STORY_HANDOFF_VH live in product-story/productStory.config.ts.
 const CAROUSEL_VH = 340; // horizontal carousel scroll-through, 5 slides
 const GAP_2_VH = 45; // breathing room after the carousel ends
 const CUT3_VH = 240; // diagonal wipe into Section 4 — same width as Cut 1 / Cut 2
 
-const TRACK_VH =
-  HERO_VH +
-  CONTENDERS_VH +
-  CAROUSEL_VH +
-  GAP_2_VH +
-  CUT3_VH;
+// Everything below is derived from the story's length, which differs between
+// desktop (video-shrinks-into-phone intro) and compact screens (phone only).
+function getTrackLayout(storyVh: number) {
+  const TRACK_VH =
+    HERO_VH +
+    CONTENDERS_VH +
+    storyVh +
+    CAROUSEL_VH +
+    GAP_2_VH +
+    CUT3_VH;
 
-const K1 = HERO_VH / TRACK_VH;
-const K2 = (HERO_VH + CONTENDERS_VH) / TRACK_VH;
-// Seamless, continuous handoff: as Cut 2 reveals Qrome at 0.58, it immediately
-// flows continuously with the scroll into Agronomic Insights without pausing or sticking
-const HANDOFF_START = K1 + 0.58 * (K2 - K1);
-const HANDOFF_END = K2;
-const CAROUSEL_START = K2;
-const CAROUSEL_END = (HERO_VH + CONTENDERS_VH + CAROUSEL_VH) / TRACK_VH;
-const CUT3_START =
-  (HERO_VH + CONTENDERS_VH + CAROUSEL_VH + GAP_2_VH) /
-  TRACK_VH;
-const K3 = 1.0;
+  const K1 = HERO_VH / TRACK_VH;
+  const K2 = (HERO_VH + CONTENDERS_VH) / TRACK_VH;
+  // Where Cut 2 has finished revealing the story wrapper (its entry settles here).
+  const SETTLE = K1 + 0.58 * (K2 - K1);
+  // The story owns [STORY_START, STORY_END]; its last STORY_HANDOFF_VH is the
+  // continuous slide-up into Agronomic Insights.
+  const STORY_START = K2;
+  const STORY_END = (HERO_VH + CONTENDERS_VH + storyVh) / TRACK_VH;
+  const HANDOFF_START = STORY_END - STORY_HANDOFF_VH / TRACK_VH;
+  const HANDOFF_END = STORY_END;
+  const CAROUSEL_START = STORY_END;
+  const CAROUSEL_END = (HERO_VH + CONTENDERS_VH + storyVh + CAROUSEL_VH) / TRACK_VH;
+  const CUT3_START =
+    (HERO_VH + CONTENDERS_VH + storyVh + CAROUSEL_VH + GAP_2_VH) /
+    TRACK_VH;
+  const K3 = 1.0;
+  return {
+    TRACK_VH, K1, K2, SETTLE, STORY_START, STORY_END, HANDOFF_START, HANDOFF_END,
+    CAROUSEL_START, CAROUSEL_END, CUT3_START, K3,
+  };
+}
 
+/**
+ * The scroll track's length depends on the breakpoint, so cross it and the
+ * whole experience remounts with the right layout (rare: only on resize).
+ */
 export function ParallaxExperience() {
+  const compact = !useIsDesktop();
+  return <ParallaxTrack key={compact ? 'compact' : 'desktop'} compact={compact} />;
+}
+
+interface ParallaxTrackProps {
+  compact: boolean;
+  key?: string;
+}
+
+function ParallaxTrack({ compact }: ParallaxTrackProps) {
+  const storyLayout = getStoryLayout(compact);
+  const {
+    TRACK_VH, K1, K2, SETTLE, STORY_START, STORY_END, HANDOFF_START, HANDOFF_END,
+    CAROUSEL_START, CAROUSEL_END, CUT3_START, K3,
+  } = getTrackLayout(storyLayout.storyVh);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
   const [isExploreActive, setIsExploreActive] = useState(false);
   const [isFeaturesExploreActive, setIsFeaturesExploreActive] = useState(false);
   const [selectedGeneticTrait, setSelectedGeneticTrait] = useState<CornSeedTrait | null>(null);
@@ -231,7 +145,6 @@ export function ParallaxExperience() {
   const currentSlide = 0;
   const [isHeroRevealed, setIsHeroRevealed] = useState(true);
   const [isSectionRevealed, setIsSectionRevealed] = useState(false);
-  const [isSectionThreeRevealed, setIsSectionThreeRevealed] = useState(false);
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
 
   // Lock vertical scrolling completely while explore mode is active
@@ -302,7 +215,7 @@ export function ParallaxExperience() {
   // Track active section index based on scroll progress. Switches as soon as
   // each transition's diagonal cut is actually visible, not at the full
   // K1/HANDOFF_START boundary — matching the same 0.35 fraction already used
-  // elsewhere (isNavHidden below, sectionThreeEntryProgress) for "this
+  // elsewhere (isNavHidden below) for "this
   // section has visibly started appearing."
   useEffect(() => {
     const section2Start = K1 + 0.35 * (K2 - K1);
@@ -316,6 +229,38 @@ export function ParallaxExperience() {
       } else {
         setActiveSectionIndex(3);
       }
+    });
+    return () => unsubscribe();
+  }, [smoothProgress]);
+
+  // Story video loads only once the story is close, and stops after it hands
+  // off to the Insights carousel.
+  const isDesktop = !compact;
+  const [isStoryNear, setIsStoryNear] = useState(false);
+  // Latches on the first approach so the overlay chunk loads before the button
+  // is reachable, then stays mounted (its exit animation needs it).
+  const [featuresLoaded, setFeaturesLoaded] = useState(false);
+  useEffect(() => {
+    if (isStoryNear) setFeaturesLoaded(true);
+  }, [isStoryNear]);
+  useEffect(() => {
+    const unsubscribe = smoothProgress.on('change', (p) => {
+      setIsStoryNear(p > 0.6 * K1 && p < CAROUSEL_START + 0.02);
+    });
+    return () => unsubscribe();
+  }, [smoothProgress]);
+
+  // Canvas animations only run while their section can be seen. Thresholds
+  // sit slightly outside each section's visible span so nothing freezes
+  // on-screen during a cut.
+  const [isHeroActive, setIsHeroActive] = useState(true);
+  const [isConstellationActive, setIsConstellationActive] = useState(false);
+  const [isDownloadActive, setIsDownloadActive] = useState(false);
+  useEffect(() => {
+    const unsubscribe = smoothProgress.on('change', (p) => {
+      setIsHeroActive(p < 0.62 * K1);
+      setIsConstellationActive(p > 0.05 * K1 && p < K2 + 0.02);
+      setIsDownloadActive(p >= CUT3_START - 0.02);
     });
     return () => unsubscribe();
   }, [smoothProgress]);
@@ -350,19 +295,6 @@ export function ParallaxExperience() {
         setIsSectionRevealed(true);
       } else if (val < 0.44 * K1 || val >= K1 + 0.52 * (K2 - K1)) {
         setIsSectionRevealed(false);
-      }
-
-      // 3. Qrome Products (Section 3)
-      if (
-        val >= K1 + 0.48 * (K2 - K1) &&
-        val < HANDOFF_START + 0.15 * (HANDOFF_END - HANDOFF_START)
-      ) {
-        setIsSectionThreeRevealed(true);
-      } else if (
-        val < K1 + 0.40 * (K2 - K1) ||
-        val >= HANDOFF_START + 0.25 * (HANDOFF_END - HANDOFF_START)
-      ) {
-        setIsSectionThreeRevealed(false);
       }
     };
     checkRevealed(diagonalCutSpring.get());
@@ -523,24 +455,21 @@ export function ParallaxExperience() {
   );
 
   // =========================================================================
-  // SECTION 3 (PLACEHOLDER / QROME) PARALLAX DISPLACEMENTS INSIDE CUT 2
+  // SECTION 3 (PRODUCT STORY): LOCAL 0 -> 1 PROGRESS
   // =========================================================================
-  // Dedicated 0 -> 1 normalized entry progress for Section 3 (Qrome Products)
-  // Reaches full center right at HANDOFF_START as Cut 2 clears
-  const sectionThreeEntryProgress = useTransform(
+  // The story runs on its own slice of the track (STORY_START..STORY_END) and
+  // receives a local, already-smoothed progress value — the video intro, the
+  // pinned phone and the end-of-scroll text all key off this one number.
+  const storyProgress = useTransform(smoothProgress, [STORY_START, STORY_END], [0, 1], {
+    clamp: true,
+  });
+  // The opening video frame's entrance plays out over the tail of the Cut 2
+  // wipe (before the story's own progress begins at STORY_START).
+  const storyEntrance = useTransform(
     smoothProgress,
-    [K1 + 0.35 * (K2 - K1), HANDOFF_START],
-    [0, 1]
-  );
-  const placeholderTextY = useTransform(
-    smoothProgress,
-    [K1 + 0.35 * (K2 - K1), HANDOFF_START],
-    ['20%', '0%']
-  );
-  const placeholderTextOpacity = useTransform(
-    smoothProgress,
-    [K1 + 0.35 * (K2 - K1), K1 + 0.48 * (K2 - K1)],
-    [0, 1]
+    [K1 + 0.4 * (K2 - K1), STORY_START],
+    [0, 1],
+    { clamp: true }
   );
 
   // =========================================================================
@@ -589,19 +518,14 @@ export function ParallaxExperience() {
     p >= K1 + 0.35 * (K2 - K1) && p < CUT3_START ? 'auto' : 'none'
   );
 
-  // Section 3 (Qrome Products) always scrolls naturally with the screen:
-  // - Enters by rising into view from 24% as Cut 2 sweeps across
-  // - Settles into centered view
-  // - Without pausing, scrolls continuously upward off the screen into Insights (0% -> -100%)
-  const sectionThreeExitProgress = useTransform(
-    smoothProgress,
-    [HANDOFF_START, HANDOFF_END],
-    [0, 1]
-  );
+  // Section 3 (Product Story) wrapper:
+  // - Enters by rising into view from 24% as Cut 2 sweeps across (settles at SETTLE)
+  // - Stays pinned while the story plays out
+  // - In the last STORY_HANDOFF_VH scrolls continuously upward into Insights (0% -> -100%)
   const placeholderContentY = useTransform(
     smoothProgress,
-    [K1 + 0.35 * (K2 - K1), HANDOFF_START, HANDOFF_END],
-    ['24%', '0%', '-100%']
+    [K1 + 0.35 * (K2 - K1), SETTLE, HANDOFF_START, HANDOFF_END],
+    ['24%', '0%', '0%', '-100%']
   );
   const placeholderContentOpacity = useTransform(
     smoothProgress,
@@ -738,6 +662,8 @@ export function ParallaxExperience() {
   // Keyboard navigation between sections
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // The features overlay owns the keyboard (PageUp/Down scroll IT, not the page).
+      if (isFeaturesExploreActive) return;
       if (e.key === 'PageDown') {
         if (activeSectionIndex === 0) scrollToContenders();
         else if (activeSectionIndex === 1) scrollToPlaceholder();
@@ -750,14 +676,14 @@ export function ParallaxExperience() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeSectionIndex]);
+  }, [activeSectionIndex, isFeaturesExploreActive]);
 
   // Story sections metadata for global floating navigation
   const STORY_SECTIONS = [
-    { id: 'revolution', label: 'Revolution', number: '01' },
-    { id: 'simulations', label: 'Computers & Simulations', number: '02' },
-    { id: 'products', label: 'Qrome® Products', number: '03' },
-    { id: 'placeholder2', label: 'Download App', number: '04' },
+    { id: 'Home', label: 'Home', number: '01' },
+    { id: 'Library', label: 'Library', number: '02' },
+    { id: 'Features', label: 'Features', number: '03' },
+    { id: 'Get Access', label: 'Get Access', number: '04' },
   ];
 
   const scrollAnimRef = useRef<number | null>(null);
@@ -878,23 +804,15 @@ export function ParallaxExperience() {
     smoothScrollTo(target, 1400);
   };
 
-  // Smooth scroll helper: advance to Section 3 (Qrome Products)
+  // Smooth scroll helper: advance to Section 3 (Product Story), parking at the
+  // FEATURES_ANCHOR frame where the phone is pinned and the headline + button
+  // are fully in.
   const scrollToPlaceholder = () => {
     if (!containerRef.current) return;
     const maxScroll = containerRef.current.offsetHeight - window.innerHeight;
-    const target = containerRef.current.offsetTop + maxScroll * (K1 + 0.58 * (K2 - K1));
+    const anchor = STORY_START + storyLayout.featuresAnchor * (STORY_END - STORY_START);
+    const target = containerRef.current.offsetTop + maxScroll * anchor;
     smoothScrollTo(target, 1500);
-  };
-
-  // Opening the "View The Features" panel always snaps to the same
-  // anchor point within Qrome Products first (same one scrollToPlaceholder
-  // settles at), so the panel appears in a consistent spot regardless of
-  // where the user happened to be scrolled to when they clicked it.
-  const handleFeaturesExploreActiveChange = (active: boolean) => {
-    if (active) {
-      scrollToPlaceholder();
-    }
-    setIsFeaturesExploreActive(active);
   };
 
   // Same fix as "View The Features": opening Explore The Library always
@@ -940,6 +858,10 @@ export function ParallaxExperience() {
     else if (index === 3) scrollToSection4();
   };
 
+  // "View The Features" opens a full-screen overlay with its own scroller
+  // (feature stages); closing returns to the exact page position.
+  const closeFeatures = useCallback(() => setIsFeaturesExploreActive(false), []);
+
   const slide = SLIDES[currentSlide];
 
   return (
@@ -976,7 +898,7 @@ export function ParallaxExperience() {
                 `radial-gradient(circle at 50% 25%, ${glow} 0%, transparent 60%), radial-gradient(circle at 50% 70%, transparent 35%, ${base} 100%)`
             ),
           }}
-          className="absolute inset-0 pointer-events-none z-0 opacity-80 mix-blend-screen"
+          className="absolute inset-0 pointer-events-none z-0 opacity-80 lg:mix-blend-screen"
           aria-hidden="true"
         />
 
@@ -985,7 +907,7 @@ export function ParallaxExperience() {
             ========================================================================= */}
         <div
           id="hero-section-base"
-          className="absolute inset-0 w-full h-full overflow-hidden [perspective:1400px] z-0"
+          className="absolute inset-0 w-full h-full overflow-hidden lg:[perspective:1400px] z-0"
         >
           {/* 3D Tilted World Stage */}
           <motion.div
@@ -993,7 +915,9 @@ export function ParallaxExperience() {
             style={{
               rotateX: heroRotateX,
               rotateY: heroRotateY,
-              transformStyle: 'preserve-3d',
+              // The mouse tilt is desktop-only; flat compositing is much
+              // cheaper on phones/tablets.
+              transformStyle: isDesktop ? 'preserve-3d' : 'flat',
             }}
             className="absolute inset-0 w-full h-full pointer-events-none"
           >
@@ -1009,14 +933,8 @@ export function ParallaxExperience() {
               className="absolute -inset-[6%] z-0 pointer-events-none"
             >
               <img
-                src="/hero.png"
+                src="/hero.webp"
                 alt="Talos Calisthenics Anatomical Sculpture"
-                onError={(e) => {
-                  const target = e.currentTarget;
-                  if (!target.src.endsWith('/hero-corn.png')) {
-                    target.src = '/hero-corn.png';
-                  }
-                }}
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover object-center"
               />
@@ -1036,13 +954,13 @@ export function ParallaxExperience() {
 
               {/* Luminous Volumetric Cosmic Nebula Haze on the right (Soft, subtle ambient haze) */}
               <div
-                className="absolute inset-0 bg-[radial-gradient(ellipse_at_88%_44%,_rgba(16,185,129,0.07)_0%,_rgba(6,78,59,0.03)_36%,_transparent_70%)] pointer-events-none mix-blend-screen"
+                className="absolute inset-0 bg-[radial-gradient(ellipse_at_88%_44%,_rgba(16,185,129,0.07)_0%,_rgba(6,78,59,0.03)_36%,_transparent_70%)] pointer-events-none lg:mix-blend-screen"
                 aria-hidden="true"
               />
 
               {/* Studio Floor Specular Reflection Sheen at bottom */}
               <div
-                className="absolute bottom-0 inset-x-0 h-48 bg-[radial-gradient(ellipse_at_76%_90%,_rgba(52,211,153,0.06)_0%,_rgba(6,78,59,0.02)_45%,_transparent_75%)] pointer-events-none mix-blend-screen"
+                className="absolute bottom-0 inset-x-0 h-48 bg-[radial-gradient(ellipse_at_76%_90%,_rgba(52,211,153,0.06)_0%,_rgba(6,78,59,0.02)_45%,_transparent_75%)] pointer-events-none lg:mix-blend-screen"
                 aria-hidden="true"
               />
 
@@ -1076,7 +994,7 @@ export function ParallaxExperience() {
               }}
               className="absolute inset-0 z-10 pointer-events-none"
             >
-              <ParticleField />
+              <ParticleField active={isHeroActive} />
             </motion.div>
           </motion.div>
 
@@ -1157,7 +1075,7 @@ export function ParallaxExperience() {
               className="absolute -inset-[5%] pointer-events-none z-0"
             >
               <img
-                src="/data-constellation.jpg"
+                src="/data-constellation.webp"
                 alt="Biotech Data Constellation"
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover object-center opacity-65 mix-blend-screen"
@@ -1279,6 +1197,7 @@ export function ParallaxExperience() {
               className="absolute -top-[40%] left-0 right-0 h-[180%] pointer-events-auto z-10 [transform:translateZ(10px)]"
             >
               <ConstellationCanvas
+                active={isConstellationActive}
                 activeSlide={currentSlide}
                 scrollProgress={smoothProgress}
                 isShiftedLeft={isExploreActive}
@@ -1329,7 +1248,7 @@ export function ParallaxExperience() {
               opacity: contendersTextOpacity,
               pointerEvents: contendersPointerEvents,
             }}
-            className="absolute inset-0 z-20 flex flex-col lg:flex-row items-start lg:items-center justify-between px-6 sm:px-12 lg:px-16 max-w-7xl w-full mx-auto pointer-events-none"
+            className="absolute inset-0 z-20 flex flex-col lg:flex-row items-start lg:items-center justify-center lg:justify-between gap-5 sm:gap-7 lg:gap-0 pt-24 pb-32 sm:pb-36 lg:py-0 px-6 sm:px-12 lg:px-16 max-w-7xl w-full mx-auto pointer-events-none"
           >
             <motion.div
               animate={{
@@ -1418,7 +1337,7 @@ export function ParallaxExperience() {
               initial="hidden"
               animate={isExploreActive ? 'exploreHidden' : isSectionRevealed ? 'visible' : 'hidden'}
               style={{ pointerEvents: isExploreActive ? 'none' : 'auto' }}
-              className="mt-8 lg:mt-0 pointer-events-auto [transform:translateZ(32px)] flex items-center justify-center lg:mr-8 xl:mr-14 self-center lg:self-auto"
+              className="pointer-events-auto [transform:translateZ(32px)] flex items-center justify-center order-first lg:order-none self-end mr-6 sm:mr-16 lg:mr-8 xl:mr-14 lg:self-auto"
             >
               <ExploreLibraryButton onClick={() => handleExploreActiveChange(true)} />
             </motion.div>
@@ -1426,7 +1345,7 @@ export function ParallaxExperience() {
         </motion.div>
 
         {/* =========================================================================
-            SECTION 3: QROME PRODUCTS (CLIPPED BY DYNAMIC DIAGONAL CUT-IN 2)
+            SECTION 3: PRODUCT STORY (CLIPPED BY DYNAMIC DIAGONAL CUT-IN 2)
             Continuing to scroll within this same revealed section slides from
             the static placeholder content into the Agronomic Insights
             horizontal-scroll content — no second diagonal cut. The container
@@ -1444,11 +1363,10 @@ export function ParallaxExperience() {
           className="absolute inset-0 w-full h-full z-30 overflow-hidden bg-[#050505] [perspective:1400px]"
         >
           {/* Persistent shared background — rendered once, never slides or
-              fades. Both the Qrome content and the Insights content sit on
-              top of this as foreground layers, so the background truly
-              never changes through the handoff (including the gap between
-              the two where neither panel's content is on screen). */}
-          <ProductsAtmosphereBackground mouseX={smoothMouseX} mouseY={smoothMouseY} />
+              fades. Both the Product Story and the Insights content sit on
+              top of this as foreground layers, so the backdrop (the Talos
+              AI-feedback gradient) never changes through the handoff. */}
+          <StageBackdrop />
 
           <motion.div
             style={{
@@ -1458,16 +1376,12 @@ export function ParallaxExperience() {
             }}
             className="absolute inset-0"
           >
-            <PlaceholderSection
-              isRevealed={isSectionThreeRevealed}
-              entryProgress={sectionThreeEntryProgress}
-              exitProgress={sectionThreeExitProgress}
-              contentY={placeholderTextY}
-              contentOpacity={placeholderTextOpacity}
-              mouseX={smoothMouseX}
-              mouseY={smoothMouseY}
-              isFeaturesExploreActive={isFeaturesExploreActive}
-              onFeaturesExploreActiveChange={handleFeaturesExploreActiveChange}
+            <ProductStoryStage
+              progress={storyProgress}
+              entrance={storyEntrance}
+              isNear={isStoryNear}
+              compact={compact}
+              onViewFeatures={() => setIsFeaturesExploreActive(true)}
             />
           </motion.div>
 
@@ -1505,7 +1419,7 @@ export function ParallaxExperience() {
           }}
           className="absolute inset-0 w-full h-full z-[35] overflow-hidden [perspective:1400px]"
         >
-          <PlaceholderSection2 contentY={section4TextY} contentOpacity={section4TextOpacity} />
+          <PlaceholderSection2 active={isDownloadActive} contentY={section4TextY} contentOpacity={section4TextOpacity} />
         </motion.div>
 
         {/* =========================================================================
@@ -1578,7 +1492,7 @@ export function ParallaxExperience() {
           }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           aria-label="Story sections navigation"
-          className="absolute right-5 sm:right-8 lg:right-10 top-1/2 -translate-y-1/2 flex flex-col items-center gap-5 z-40 select-none"
+          className="absolute right-5 sm:right-8 lg:right-10 top-1/2 -translate-y-1/2 hidden lg:flex flex-col items-center gap-5 z-40 select-none"
         >
           {/* Subtle Vertical Connector Track */}
           <div
@@ -1697,7 +1611,7 @@ export function ParallaxExperience() {
           </motion.button>
 
           {/* Micro text label */}
-          <span className="text-[9px] uppercase tracking-[0.2em] font-medium text-emerald-400/60 transition-colors select-none">
+          <span className="block text-center pl-[0.2em] text-[9px] uppercase tracking-[0.2em] font-medium text-emerald-400/60 transition-colors select-none">
             EXPLORE
           </span>
         </motion.div>
@@ -1732,6 +1646,14 @@ export function ParallaxExperience() {
         </AnimatePresence>
 
 
+
+        {/* "View The Features": full-screen overlay with its own scroller.
+            Portalled to <body> by the component itself. */}
+        {featuresLoaded && (
+          <Suspense fallback={null}>
+            <FeaturesOverlay open={isFeaturesExploreActive} onClose={closeFeatures} />
+          </Suspense>
+        )}
 
         {/* Explore Mode HUD Guidance — rendered here (alongside the Close
             button) rather than inside ConstellationCanvas, because that
@@ -1781,12 +1703,6 @@ export function ParallaxExperience() {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Genetic Trait Library Explorer Modal */}
-        <GeneticLibraryModal
-          isOpen={isLibraryModalOpen}
-          onClose={() => setIsLibraryModalOpen(false)}
-        />
       </div>
     </motion.div>
   );

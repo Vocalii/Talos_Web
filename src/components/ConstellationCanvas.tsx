@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { MotionValue } from 'motion/react';
 import { CornSeedTrait, getCornTrait } from '../data/cornTraits';
+import { getCanvasDpr } from '../utils/canvasDpr';
 
 interface ConstellationCanvasProps {
   className?: string;
@@ -9,6 +10,8 @@ interface ConstellationCanvasProps {
   isShiftedLeft?: boolean;
   selectedTrait?: CornSeedTrait | null;
   onSelectTrait?: (trait: CornSeedTrait | null) => void;
+  /** When false the animation loop stops (section scrolled off-screen). */
+  active?: boolean;
 }
 
 interface NodePoint {
@@ -58,8 +61,11 @@ export function ConstellationCanvas({
   isShiftedLeft = false,
   selectedTrait = null,
   onSelectTrait,
+  active = true,
 }: ConstellationCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const activeRef = useRef(active);
+  const resumeRef = useRef<() => void>(() => {});
   const progressRef = useRef(0);
   const isShiftedLeftRef = useRef(isShiftedLeft);
   const onSelectTraitRef = useRef(onSelectTrait);
@@ -111,13 +117,13 @@ export function ConstellationCanvas({
     let animId: number;
     let width = window.innerWidth;
     let height = window.innerHeight;
-    let dpr = window.devicePixelRatio || 1;
+    let dpr = getCanvasDpr();
 
     const resize = () => {
       if (!canvas) return;
       width = canvas.parentElement?.clientWidth || window.innerWidth;
       height = canvas.parentElement?.clientHeight || window.innerHeight;
-      dpr = window.devicePixelRatio || 1;
+      dpr = getCanvasDpr();
       canvas.width = width * dpr;
       canvas.height = height * dpr;
       canvas.style.width = `${width}px`;
@@ -344,7 +350,14 @@ export function ConstellationCanvas({
     let time = 0;
     let currentShiftFactor = 0;
 
+    // Stops rescheduling while `active` is false (last frame stays on the
+    // canvas); restarted by the effect below.
+    let running = true;
     const render = () => {
+      if (!activeRef.current) {
+        running = false;
+        return;
+      }
       time += 0.015;
       ctx.clearRect(0, 0, width, height);
 
@@ -762,6 +775,12 @@ export function ConstellationCanvas({
       animId = requestAnimationFrame(render);
     };
 
+    resumeRef.current = () => {
+      if (running) return;
+      running = true;
+      animId = requestAnimationFrame(render);
+    };
+
     animId = requestAnimationFrame(render);
 
     return () => {
@@ -772,6 +791,11 @@ export function ConstellationCanvas({
       window.removeEventListener('click', onCanvasClick);
     };
   }, [activeSlide]);
+
+  useEffect(() => {
+    activeRef.current = active;
+    if (active) resumeRef.current();
+  }, [active]);
 
   return (
     <canvas
