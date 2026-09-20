@@ -7,6 +7,7 @@ interface LiquidPullTextProps {
   maxBlur?: number;
   radius?: number;
   lerpFactor?: number;
+  letterClassName?: string;
 }
 
 interface LetterPhysics {
@@ -34,6 +35,7 @@ export const LiquidPullText: React.FC<LiquidPullTextProps> = ({
   maxBlur = 5.0,
   radius = 120,
   lerpFactor = 0.12,
+  letterClassName = '',
 }) => {
   const containerRef = useRef<HTMLSpanElement>(null);
   const letterRefs = useRef<(HTMLSpanElement | null)[]>([]);
@@ -129,7 +131,9 @@ export const LiquidPullText: React.FC<LiquidPullTextProps> = ({
           hasDisplacement = true;
           p.wasDisplaced = true;
           el.style.transform = `translate3d(${p.currentX.toFixed(2)}px, ${p.currentY.toFixed(2)}px, 0) rotate(${p.currentRotate.toFixed(2)}deg) scale(${p.currentScaleX.toFixed(3)}, ${p.currentScaleY.toFixed(3)})`;
-          el.style.filter = `blur(${p.currentBlur.toFixed(2)}px)`;
+          const glintBrightness = (1 + (p.currentBlur / (maxBlur || 1)) * 0.35).toFixed(2);
+          const blurVal = p.currentBlur > 0.05 ? `blur(${p.currentBlur.toFixed(2)}px)` : '';
+          el.style.filter = blurVal ? `${blurVal} brightness(${glintBrightness})` : `brightness(${glintBrightness})`;
           el.style.willChange = 'transform, filter';
         } else if (p.wasDisplaced) {
           // Cleanly reset DOM styles when settled back to rest
@@ -265,11 +269,11 @@ export const LiquidPullText: React.FC<LiquidPullTextProps> = ({
       aria-label={text}
     >
       <span className="sr-only">{text}</span>
-      <span aria-hidden="true" className="inline-block">
+      <span aria-hidden="true" className="inline-block" style={{ letterSpacing: 'inherit' }}>
         {words.map((word, wordIndex) => {
           return (
             <React.Fragment key={wordIndex}>
-              <span className="inline-block whitespace-nowrap">
+              <span className="inline-block whitespace-nowrap" style={{ letterSpacing: 'inherit' }}>
                 {word.split('').map((char, charIndex) => {
                   const currentIdx = letterIndexCounter++;
                   return (
@@ -278,8 +282,12 @@ export const LiquidPullText: React.FC<LiquidPullTextProps> = ({
                       ref={(el) => {
                         letterRefs.current[currentIdx] = el;
                       }}
-                      className="inline-block select-none"
-                      style={{ transformOrigin: 'center center' }}
+                      className={`inline-block select-none ${letterClassName}`}
+                      style={{
+                        transformOrigin: 'center center',
+                        WebkitTextStroke: '0.25px rgba(255, 255, 255, 0.22)',
+                        letterSpacing: 'inherit',
+                      }}
                     >
                       {char}
                     </span>
@@ -287,7 +295,7 @@ export const LiquidPullText: React.FC<LiquidPullTextProps> = ({
                 })}
               </span>
               {wordIndex < words.length - 1 && (
-                <span className="inline-block w-[0.26em]">&nbsp;</span>
+                <span className="inline-block w-[0.45em]">&nbsp;</span>
               )}
             </React.Fragment>
           );

@@ -3,6 +3,45 @@
 // so both sections animate in and out identically.
 
 // Staggered entrance variants for Section 2 content reveal
+export const heroHeadlineVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.18,
+      delayChildren: 0.08,
+    },
+  },
+};
+
+export const heroLineVariants = {
+  hidden: { opacity: 0, y: 32, filter: 'blur(36px)', scale: 0.97 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    scale: 1,
+    transition: {
+      duration: 2.6,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+};
+
+export const heroSubtitleVariants = {
+  hidden: { opacity: 0, y: 22, filter: 'blur(24px)' },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    transition: {
+      duration: 2.4,
+      delay: 0.55,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+};
+
 export const sectionContentVariants = {
   hidden: {
     opacity: 0,

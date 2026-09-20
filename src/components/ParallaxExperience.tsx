@@ -1,17 +1,21 @@
 import { lazy, Suspense, useState, useRef, useEffect, useCallback, TouchEvent } from 'react';
 import { motion, useMotionValue, useSpring, useTransform, useScroll, AnimatePresence } from 'motion/react';
-import { ChevronDown, Check, X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { PioneerLogo } from './PioneerLogo';
 import { ParticleField } from './ParticleField';
 import { ConstellationCanvas } from './ConstellationCanvas';
 import { HorizontalTextScrollSection } from './HorizontalTextScrollSection';
 import { PlaceholderSection2 } from './PlaceholderSection2';
 import { LiquidPullText } from './LiquidPullText';
+import { HeroTextAtmosphere } from './HeroTextAtmosphere';
 import { ExploreLibraryButton } from './ExploreLibraryButton';
 import { GeneticTraitSidePanel } from './GeneticTraitTooltip';
 import { CornSeedTrait } from '../data/cornTraits';
 import { getTraitAtmosphere } from '../utils/traitAtmosphere';
 import {
+  heroHeadlineVariants,
+  heroLineVariants,
+  heroSubtitleVariants,
   sectionContentVariants,
   headlineLineVariants,
   paragraphVariants,
@@ -313,6 +317,12 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
   const heroRotateX = useTransform(smoothMouseY, [-1, 1], [3.5, -3.5]);
   const heroRotateY = useTransform(smoothMouseX, [-1, 1], [-4.5, 4.5]);
 
+  // 3D Tilt angles & mouse-follow displacements for Hero headline container (editorial depth-aware feel)
+  const headlineRotateX = useTransform(smoothMouseY, [-1, 1], [3.2, -3.2]);
+  const headlineRotateY = useTransform(smoothMouseX, [-1, 1], [-4.2, 4.2]);
+  const headlineTranslateX = useTransform(smoothMouseX, [-1, 1], [-10, 10]);
+  const headlineTranslateY = useTransform(smoothMouseY, [-1, 1], [-6, 6]);
+
   // Deep Background Layer Parallax (Hero mouse displacement)
   const heroMouseBgX = useTransform(smoothMouseX, [-1, 1], [20, -20]);
   const heroMouseBgY = useTransform(smoothMouseY, [-1, 1], [14, -14]);
@@ -398,10 +408,6 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
 
   // Hero Particles: glide upward
   const heroParticlesY = useTransform(smoothProgress, [0, 0.55 * K1], ['0%', '-90%']);
-
-  // Hero Scroll Indicator ("EXPLORE"): fades out early in scroll
-  const heroIndicatorOpacity = useTransform(smoothProgress, [0, 0.10 * K1], [1, 0]);
-  const heroIndicatorY = useTransform(smoothProgress, [0, 0.10 * K1], [0, 20]);
 
   // Combined vertical offsets for Hero background and particle elements
   const combinedHeroBgY = useTransform(
@@ -999,7 +1005,7 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
           </motion.div>
 
           {/* Hero Foreground Headline & Copy (Completely stable, free of 3D clipping or disappearing hover effects) */}
-          {/* Hero Foreground Headline & Copy with Liquid Magnetic Hover Pull */}
+          {/* Hero Foreground Content Layer anchored to bottom like reference layout */}
           <motion.div
             id="hero-content-layer"
             style={{
@@ -1007,38 +1013,64 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
               y: heroScrollTextY,
               scale: heroTextScale,
               pointerEvents: heroPointerEvents,
+              perspective: 1200,
             }}
-            className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-4 sm:px-6 pointer-events-none mt-16 sm:mt-24"
+            className="absolute inset-0 z-20 flex flex-col justify-end pointer-events-none pb-8 sm:pb-12 md:pb-14 lg:pb-16 px-4 sm:px-8 md:px-12"
           >
-            <div className="max-w-7xl mx-auto w-full pointer-events-auto">
-              {/* Massive Bold Headline with Slow Cinematic Phase/Blur Entrance & Organic Liquid Pull */}
+            {/* Atmospheric ambient backlight behind the bottom headline */}
+            <div
+              className="absolute bottom-0 left-0 right-0 h-[380px] pointer-events-none -z-10"
+              style={{
+                background:
+                  'radial-gradient(ellipse 90% 70% at 50% 95%, rgba(16, 185, 129, 0.08) 0%, rgba(0, 0, 0, 0.55) 55%, transparent 100%)',
+              }}
+              aria-hidden="true"
+            />
+
+            {/* Headline spanning the entire bottom of the screen by itself with satin titanium finish & 3D mouse tilt */}
+            <motion.div
+              id="hero-headline-tilt-container"
+              style={{
+                rotateX: headlineRotateX,
+                rotateY: headlineRotateY,
+                x: headlineTranslateX,
+                y: headlineTranslateY,
+                transformStyle: 'preserve-3d',
+              }}
+              className="w-full max-w-[1600px] mx-auto pointer-events-auto text-center relative will-change-transform"
+            >
+              {/* Subtle floating atmospheric particles layer situated directly behind the hero text */}
+              <HeroTextAtmosphere
+                active={isHeroActive}
+                className="-inset-x-8 sm:-inset-x-16 -inset-y-10 sm:-inset-y-20 -z-10"
+              />
+
               <motion.h1
                 id="hero-title"
-                variants={headlineLineVariants}
+                variants={heroHeadlineVariants}
                 initial="hidden"
                 animate={isHeroRevealed ? 'visible' : 'hidden'}
-                className="font-display font-medium text-[clamp(1.3rem,5vw,4.2rem)] whitespace-nowrap tracking-wide uppercase text-white leading-[1.08] drop-shadow-[0_12px_40px_rgba(0,0,0,0.9)] select-none will-change-[filter,opacity,transform]"
+                className="w-full font-display font-medium text-[clamp(1.5rem,3.8vw,4.85rem)] tracking-[0.24em] sm:tracking-[0.34em] md:tracking-[0.42em] lg:tracking-[0.48em] pl-[0.24em] sm:pl-[0.34em] md:pl-[0.42em] lg:pl-[0.48em] uppercase leading-[0.92] sm:leading-[0.96] md:leading-[1.0] select-none will-change-[filter,opacity,transform] headline-editorial-glow"
+                style={{
+                  transform: 'translateZ(18px)',
+                  transformStyle: 'preserve-3d',
+                }}
               >
-                <LiquidPullText
-                  text="CALISTHENICS. REVOLUTIONIZED."
-                  maxPull={1}
-                  maxBlur={5}
-                  radius={120}
-                  lerpFactor={0.12}
-                />
+                <motion.span
+                  variants={heroLineVariants}
+                  className="inline-block will-change-[filter,opacity,transform]"
+                >
+                  <LiquidPullText
+                    text="CALISTHENICS REVOLUTIONIZED"
+                    maxPull={1.1}
+                    maxBlur={5}
+                    radius={140}
+                    lerpFactor={0.12}
+                    letterClassName="text-metallic-headline"
+                  />
+                </motion.span>
               </motion.h1>
-
-              {/* Subtitle with Slow Cinematic Phase/Blur Entrance (No Hover Effect) */}
-              <motion.p
-                id="hero-subtitle"
-                variants={paragraphVariants}
-                initial="hidden"
-                animate={isHeroRevealed ? 'visible' : 'hidden'}
-                className="mt-4 sm:mt-6 md:mt-7 text-sm sm:text-base md:text-lg font-light text-white/75 tracking-[0.04em] max-w-lg mx-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] px-4 select-none will-change-[filter,opacity,transform]"
-              >
-                Master skills step by step with AI that adapts to every session
-              </motion.p>
-            </div>
+            </motion.div>
           </motion.div>
         </div>
 
@@ -1567,54 +1599,6 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
             );
           })}
         </motion.nav>
-
-        {/* Bottom Center Animated Pulsing Scroll Indicator ("EXPLORE") */}
-        <motion.div
-          id="scroll-down-indicator"
-          style={{
-            opacity: heroIndicatorOpacity,
-            y: heroIndicatorY,
-            pointerEvents: heroPointerEvents,
-          }}
-          className="absolute bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-3 select-none"
-        >
-          <motion.button
-            onClick={scrollToContenders}
-            initial={{ y: 0 }}
-            animate={{
-              y: [0, 4, 0],
-            }}
-            transition={{
-              duration: 2.2,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-            className="group relative flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#0a0a0a]/80 hover:bg-[#141414]/95 border border-emerald-500/30 hover:border-emerald-400/60 backdrop-blur-md text-emerald-300/80 hover:text-emerald-200 transition-all duration-300 shadow-[0_4px_18px_rgba(0,0,0,0.6)] cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-400/50"
-            aria-label="Scroll down to explore"
-          >
-            {/* Gentle Pulsing Ring Glow */}
-            <motion.div
-              animate={{
-                scale: [1, 1.25, 1],
-                opacity: [0.3, 0.65, 0.3],
-              }}
-              transition={{
-                duration: 2.2,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-              className="absolute inset-0 rounded-full border border-emerald-400/35 pointer-events-none"
-              aria-hidden="true"
-            />
-
-            <ChevronDown className="w-4 h-4 transition-transform duration-300 group-hover:translate-y-0.5 group-hover:text-emerald-200" />
-          </motion.button>
-
-          {/* Micro text label */}
-          <span className="block text-center pl-[0.2em] text-[9px] uppercase tracking-[0.2em] font-medium text-emerald-400/60 transition-colors select-none">
-            EXPLORE
-          </span>
-        </motion.div>
 
         {/* Minimal Floating Close Button to Restore Text from Genetic Node Explorer View */}
         <AnimatePresence>

@@ -42,6 +42,31 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
+
+  .text-metallic-headline {
+    background: linear-gradient(
+      180deg,
+      #ffffff 0%,
+      #f8fafc 26%,
+      #e2e8f0 60%,
+      #94a3b8 92%,
+      #64748b 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  /* Soft, faint editorial glow shadow for monumental typography */
+  .headline-editorial-glow {
+    filter:
+      drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.40))
+      drop-shadow(0 0 18px rgba(255, 255, 255, 0.15))
+      drop-shadow(0 0 38px rgba(255, 255, 255, 0.08))
+      drop-shadow(0 0 65px rgba(16, 185, 129, 0.07))
+      drop-shadow(0 12px 28px rgba(0, 0, 0, 0.85));
+  }
 }
 
 /* Talos app's thin, minimalist scrollbar treatment */
