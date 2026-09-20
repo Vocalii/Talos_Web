@@ -8,6 +8,11 @@ interface LiquidPullTextProps {
   radius?: number;
   lerpFactor?: number;
   letterClassName?: string;
+  /**
+   * false renders the same layout with no mouse physics or a11y label —
+   * for static decorative copies (e.g. a glow layer behind the real text).
+   */
+  interactive?: boolean;
 }
 
 interface LetterPhysics {
@@ -36,6 +41,7 @@ export const LiquidPullText: React.FC<LiquidPullTextProps> = ({
   radius = 120,
   lerpFactor = 0.12,
   letterClassName = '',
+  interactive = true,
 }) => {
   const containerRef = useRef<HTMLSpanElement>(null);
   const letterRefs = useRef<(HTMLSpanElement | null)[]>([]);
@@ -157,7 +163,7 @@ export const LiquidPullText: React.FC<LiquidPullTextProps> = ({
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || !interactive) return;
 
     const resetTargets = () => {
       const physics = physicsRef.current;
@@ -258,7 +264,7 @@ export const LiquidPullText: React.FC<LiquidPullTextProps> = ({
         cancelAnimationFrame(rafIdRef.current);
       }
     };
-  }, [maxPull, maxBlur, radius, lerpFactor]);
+  }, [maxPull, maxBlur, radius, lerpFactor, interactive]);
 
   let letterIndexCounter = 0;
 
@@ -266,9 +272,9 @@ export const LiquidPullText: React.FC<LiquidPullTextProps> = ({
     <span
       ref={containerRef}
       className={`inline-block pointer-events-auto cursor-default ${className}`}
-      aria-label={text}
+      aria-label={interactive ? text : undefined}
     >
-      <span className="sr-only">{text}</span>
+      {interactive && <span className="sr-only">{text}</span>}
       <span aria-hidden="true" className="inline-block" style={{ letterSpacing: 'inherit' }}>
         {words.map((word, wordIndex) => {
           return (

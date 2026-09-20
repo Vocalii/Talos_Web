@@ -334,6 +334,10 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
   // Dynamic light reflection hotspot for Hero
   const lightX = useTransform(smoothMouseX, [-1, 1], ['28%', '72%']);
   const lightY = useTransform(smoothMouseY, [-1, 1], ['28%', '72%']);
+  // Same hotspot for the hero, moved with a transform (GPU) rather than by
+  // rewriting a full-screen gradient string every frame (repaint).
+  const lightShiftX = useTransform(smoothMouseX, [-1, 1], ['-15%', '15%']);
+  const lightShiftY = useTransform(smoothMouseY, [-1, 1], ['-15%', '15%']);
 
   // =========================================================================
   // WEIGHTED DIAGONAL CUT-IN TRANSITION GEOMETRY (TRANSITION 1: HERO -> CONTENDERS)
@@ -599,7 +603,11 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
 
   // Track cursor movement and touch gestures across viewport for Hero 3D tilt & parallax depth
   useEffect(() => {
+    // Only Hero and Contenders read the pointer; past them, skip the work so
+    // every mouse move doesn't drive springs/transforms on hidden layers.
+    const pointerMatters = () => smoothProgress.get() < K2 + 0.02;
     const handleMouseMove = (e: MouseEvent) => {
+      if (!pointerMatters()) return;
       const width = window.innerWidth;
       const height = window.innerHeight;
       const normalizedX = (e.clientX / width) * 2 - 1;
@@ -641,7 +649,7 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [mouseX, mouseY]);
+  }, [mouseX, mouseY, smoothProgress, K2]);
 
   // Touch swipe support
   const touchStartY = useRef<number | null>(null);
@@ -947,14 +955,8 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
 
               {/* Dynamic Studio Rim Lighting (Clean, neutral high-end studio sheen) */}
               <motion.div
-                style={{
-                  background: useTransform(
-                    [lightX, lightY],
-                    ([lx, ly]) =>
-                      `radial-gradient(circle at ${lx} ${ly}, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.03) 35%, transparent 70%)`
-                  ),
-                }}
-                className="absolute inset-0 pointer-events-none"
+                style={{ x: lightShiftX, y: lightShiftY }}
+                className="absolute -inset-[25%] pointer-events-none bg-[radial-gradient(circle_at_50%_50%,_rgba(255,255,255,0.10)_0%,_rgba(255,255,255,0.03)_37%,_transparent_75%)]"
                 aria-hidden="true"
               />
 
@@ -1050,7 +1052,7 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
                 variants={heroHeadlineVariants}
                 initial="hidden"
                 animate={isHeroRevealed ? 'visible' : 'hidden'}
-                className="w-full font-display font-medium text-[clamp(1.5rem,3.8vw,4.85rem)] tracking-[0.24em] sm:tracking-[0.34em] md:tracking-[0.42em] lg:tracking-[0.48em] pl-[0.24em] sm:pl-[0.34em] md:pl-[0.42em] lg:pl-[0.48em] uppercase leading-[0.92] sm:leading-[0.96] md:leading-[1.0] select-none will-change-[filter,opacity,transform] headline-editorial-glow"
+                className="w-full font-display font-medium text-[clamp(1.5rem,3.8vw,4.85rem)] tracking-[0.24em] sm:tracking-[0.34em] md:tracking-[0.42em] lg:tracking-[0.48em] pl-[0.24em] sm:pl-[0.34em] md:pl-[0.42em] lg:pl-[0.48em] uppercase leading-[0.92] sm:leading-[0.96] md:leading-[1.0] select-none will-change-[filter,opacity,transform]"
                 style={{
                   transform: 'translateZ(18px)',
                   transformStyle: 'preserve-3d',
@@ -1058,8 +1060,22 @@ function ParallaxTrack({ compact }: ParallaxTrackProps) {
               >
                 <motion.span
                   variants={heroLineVariants}
-                  className="inline-block will-change-[filter,opacity,transform]"
+                  className="relative inline-block will-change-[filter,opacity,transform]"
                 >
+                  {/* Static glow copy: the multi-blur drop-shadow lives here, on a
+                      layer that never changes, instead of on the headline whose
+                      letters animate with the mouse (that re-rasterised five
+                      blur passes every frame). */}
+                  <span
+                    className="headline-editorial-glow absolute inset-0 pointer-events-none"
+                    aria-hidden="true"
+                  >
+                    <LiquidPullText
+                      text="CALISTHENICS REVOLUTIONIZED"
+                      interactive={false}
+                      letterClassName="text-white"
+                    />
+                  </span>
                   <LiquidPullText
                     text="CALISTHENICS REVOLUTIONIZED"
                     maxPull={1.1}
